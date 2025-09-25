@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 _LOGGER = logging.getLogger(__name__)
 
 # Firebase configuration
-FIREBASE_API_KEY = "AIzaSyBvOkBwJbXTuhC1l5P7OomUI-l2XvJgBsE"
+FIREBASE_API_KEY = "AIzaSyC0aaLXKB8Vatf2xSn1QaFH1kw7rADZlrY"
 FIREBASE_AUTH_URL = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={FIREBASE_API_KEY}"
 FIREBASE_TOKEN_URL = f"https://securetoken.googleapis.com/v1/token?key={FIREBASE_API_KEY}"
 
@@ -113,13 +113,16 @@ class RointeAuth:
                 response_data = await response.json()
                 
                 if response.status == 200:
-                    # Extract tokens and user info
-                    self._rest_token = response_data.get("token")
-                    self._rest_refresh_token = response_data.get("refresh_token")
-                    self._user_id = response_data.get("user_id") or response_data.get("userId")
+                    # Handle nested response structure from REST API
+                    data = response_data.get("data", {})
+                    self._rest_token = data.get("token")
+                    self._rest_refresh_token = data.get("refreshToken")
+                    
+                    user_info = data.get("user", {})
+                    self._user_id = user_info.get("id")
                     
                     # Set token expiry (default to 1 hour if not provided)
-                    expires_in = response_data.get("expires_in", 3600)
+                    expires_in = data.get("expires_in", 3600)
                     self._rest_token_expiry = datetime.now() + timedelta(seconds=expires_in)
                     
                     _LOGGER.debug(f"REST login successful, user_id: {self._user_id}")
