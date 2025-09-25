@@ -1,7 +1,7 @@
 {
     "domain": "rointe",
     "name": "Rointe Nexa",
-    "version": "0.0.7",
+    "version": "0.0.8",
     "documentation": "https://github.com/aiautobusinesses/rointe-hacs",
     "requirements": ["aiohttp"],
     "codeowners": ["@aiautobusinesses"],

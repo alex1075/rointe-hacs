@@ -190,6 +190,20 @@ class RointeAPI:
                                         "serialNumber": device.get("serialNumber"),
                                         "mac": device.get("mac"),
                                         "deviceStatus": device.get("deviceStatus"),
+                                        # Energy consumption data
+                                        "energyConsumption": device.get("energyConsumption"),
+                                        "powerConsumption": device.get("powerConsumption"),
+                                        # Firmware update data
+                                        "firmwareUpdate": device.get("firmwareUpdate"),
+                                        "updateAvailable": device.get("updateAvailable"),
+                                        "latestVersion": device.get("latestVersion"),
+                                        # Additional device info
+                                        "temperature": device.get("temperature"),
+                                        "status": device.get("status"),
+                                        "targetTemperature": device.get("targetTemperature"),
+                                        "preset": device.get("preset"),
+                                        "lastSeen": device.get("lastSeen"),
+                                        "online": device.get("online", True),
                                     }
                                     devices.append(device_info)
                                     _LOGGER.debug("Added device: %s (%s) in zone %s - Model: %s, Power: %sW", 

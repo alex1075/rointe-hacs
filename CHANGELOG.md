@@ -2,6 +2,28 @@
 
 All notable changes to the Rointe Nexa integration will be documented in this file.
 
+## [0.0.8] - 2024-01-XX
+### Added
+- **Energy Consumption Sensors**: Power consumption (watts) and energy consumption (kWh) sensors
+- **Firmware Update Detection**: Binary sensor to notify when firmware updates are available
+- **Additional Device Types**: Support for towel rails, thermostats, and oval towel warmers
+- **Enhanced Device Information**: Serial numbers, MAC addresses, zone information, and device status
+- **Sensor Platform**: New sensor.py platform for energy and temperature monitoring
+- **Binary Sensor Platform**: New binary_sensor.py platform for firmware update notifications
+- **Device Type Detection**: Automatic categorization of devices (radiator, towel_rail, thermostat, oval_towel)
+
+### Enhanced
+- **Device Discovery**: Now extracts energy consumption and firmware update data from API
+- **Climate Entities**: Enhanced with device category, serial number, MAC address, and zone information
+- **API Response Parsing**: Extended to include energy consumption, firmware updates, and device status
+- **Device Registry Integration**: Better device information for Home Assistant device registry
+
+### Technical
+- Added device type constants and mappings in const.py
+- Enhanced API device_info extraction with energy and firmware fields
+- Improved WebSocket update handling for new sensor data
+- Added comprehensive device status tracking
+
 ## [0.0.7] - 2024-01-XX
 ### Fixed
 - Fixed device discovery - integration now properly finds Rointe devices

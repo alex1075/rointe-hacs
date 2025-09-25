@@ -1,7 +1,7 @@
 # Rointe Nexa – Home Assistant Custom Integration
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-blue.svg)](https://hacs.xyz/)
-[![Version](https://img.shields.io/badge/version-0.1.0-green.svg)](https://github.com/youruser/rointe)
+[![Version](https://img.shields.io/badge/version-0.0.8-green.svg)](https://github.com/aiautobusinesses/rointe-hacs)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 This is a custom integration for [Home Assistant](https://www.home-assistant.io/) that connects to the **Rointe Nexa** cloud platform. It allows you to control your Rointe radiators and heaters directly from Home Assistant.
@@ -10,14 +10,31 @@ This is a custom integration for [Home Assistant](https://www.home-assistant.io/
 
 ## ✨ Features
 
-- Login using your Rointe Nexa app credentials  
-- Automatic token refresh (no password stored)  
-- Real-time device updates via Firebase WebSocket  
-- Automatic discovery of all your installations, zones and devices  
-- Control climate entities:
-  - Turn on/off (comfort/eco/ice)  
-  - Set target temperature  
-  - View current temperature and mode in Home Assistant  
+- **Dual Authentication System**: REST API + Firebase authentication for maximum compatibility
+- **Real-time Updates**: WebSocket connection for instant device state updates
+- **Automatic Device Discovery**: Finds all installations, zones, and devices automatically
+- **Multiple Device Types**: Support for radiators, towel rails, thermostats, and oval towel warmers
+
+### Climate Control
+- Turn on/off (comfort/eco/ice modes)
+- Set target temperature with mode-specific ranges
+- View current temperature and HVAC mode
+- Enhanced device information (model, power rating, serial number)
+
+### Energy Monitoring
+- **Power Consumption Sensor**: Real-time power usage in watts
+- **Energy Consumption Sensor**: Total energy consumption in kWh
+- **Current Temperature Sensor**: Separate temperature monitoring
+
+### Firmware Management
+- **Firmware Update Detection**: Binary sensor for update notifications
+- **Version Tracking**: Current and latest firmware versions
+
+### Device Information
+- Device category detection (radiator, towel_rail, thermostat, oval_towel)
+- Serial numbers and MAC addresses
+- Zone and installation information
+- Online/offline status tracking  
 
 ---
 

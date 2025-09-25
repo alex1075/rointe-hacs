@@ -7,6 +7,7 @@ from homeassistant.components.climate import (
 )
 from homeassistant.const import ATTR_TEMPERATURE
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from .const import DEVICE_MODELS
 from .ws import SIGNAL_UPDATE
 
 _LOGGER = logging.getLogger(__name__)
@@ -86,9 +87,30 @@ class RointeHeater(ClimateEntity):
         self._target_temp: Optional[float] = None
         self._available = True
         self._last_update_time = None
-        self._device_model: Optional[str] = None
-        self._device_power: Optional[int] = None
-        self._device_version: Optional[str] = None
+        
+        # Device information
+        self._device_model: Optional[str] = self._device_info.get("model")
+        self._device_power: Optional[int] = self._device_info.get("power")
+        self._device_version: Optional[str] = self._device_info.get("version")
+        self._device_type: Optional[str] = self._device_info.get("type")
+        self._device_serial: Optional[str] = self._device_info.get("serialNumber")
+        self._device_mac: Optional[str] = self._device_info.get("mac")
+        self._zone_name: Optional[str] = self._device_info.get("zone")
+        
+        # Determine device category from model
+        self._device_category = None
+        if self._device_model:
+            for model_key, category in DEVICE_MODELS.items():
+                if model_key.lower() in self._device_model.lower():
+                    self._device_category = category
+                    break
+        if not self._device_category:
+            self._device_category = "radiator"  # Default
+        
+        # Device status tracking
+        self._device_status = self._device_info.get("deviceStatus", {})
+        self._online = self._device_info.get("online", True)
+        self._last_seen = self._device_info.get("lastSeen")
         
         # Connect to WebSocket updates
         async_dispatcher_connect(hass, SIGNAL_UPDATE, self._handle_update)
@@ -164,6 +186,12 @@ class RointeHeater(ClimateEntity):
         if self._device_version:
             info["sw_version"] = self._device_version
         
+        if self._device_serial:
+            info["serial_number"] = self._device_serial
+        
+        if self._zone_name:
+            info["suggested_area"] = self._zone_name
+        
         return info
 
     @property
@@ -171,6 +199,8 @@ class RointeHeater(ClimateEntity):
         """Return additional state attributes."""
         attrs = {
             "device_id": self.device_id,
+            "device_category": self._device_category,
+            "online": self._online,
         }
         
         if self._device_power:
@@ -182,6 +212,27 @@ class RointeHeater(ClimateEntity):
         if self._device_version:
             attrs["device_version"] = self._device_version
         
+        if self._device_type:
+            attrs["device_type"] = self._device_type
+        
+        if self._device_serial:
+            attrs["serial_number"] = self._device_serial
+        
+        if self._device_mac:
+            attrs["mac_address"] = self._device_mac
+        
+        if self._zone_name:
+            attrs["zone"] = self._zone_name
+        
+        if self._last_seen:
+            attrs["last_seen"] = self._last_seen
+        
+        if self._last_update_time:
+            attrs["last_update"] = self._last_update_time.isoformat()
+        
+        if self._device_status:
+            attrs["device_status"] = self._device_status
+        
         return attrs
 
     def _handle_update(self, device_id: str, state: dict):
@@ -191,6 +242,11 @@ class RointeHeater(ClimateEntity):
         
         try:
             _LOGGER.debug("Received update for device %s: %s", device_id, state)
+            
+            # Update device status information
+            self._device_status = state.get("deviceStatus", self._device_status)
+            self._online = state.get("online", self._online)
+            self._last_seen = state.get("lastSeen", self._last_seen)
             
             # Update current temperature
             if "temp" in state and isinstance(state["temp"], (int, float)):
