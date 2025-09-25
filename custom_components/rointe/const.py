@@ -1,5 +1,5 @@
 DOMAIN = "rointe"
-PLATFORMS = ["climate", "sensor", "binary_sensor"]
+PLATFORMS = ["climate"]
 
 # Device types
 DEVICE_TYPE_RADIATOR = "radiator"
