@@ -1,9 +1,10 @@
 {
     "domain": "rointe",
     "name": "Rointe Nexa",
-    "version": "0.0.1",
-    "documentation": "https://github.com/<youruser>/home-assistant-rointe",
-    "requirements": [],
-    "codeowners": ["@<youruser>"],
-    "iot_class": "cloud_push"
+    "version": "0.0.2",
+    "documentation": "https://github.com/aiautobusinesses/rointe-hacs",
+    "requirements": ["aiohttp"],
+    "codeowners": ["@aiautobusinesses"],
+    "iot_class": "cloud_push",
+    "config_flow": true
   }  
