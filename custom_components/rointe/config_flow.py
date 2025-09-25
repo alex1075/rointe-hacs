@@ -1,3 +1,10 @@
+"""
+Rointe Configuration Flow
+
+Handles configuration flow for the dual authentication system.
+Validates credentials using REST API authentication.
+"""
+
 import logging
 import voluptuous as vol
 import re
@@ -5,14 +12,11 @@ from homeassistant import config_entries
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.exceptions import HomeAssistantError
-import aiohttp
 
 from .const import DOMAIN
+from .auth import RointeAuth, RointeRestAuthError, RointeFirebaseAuthError
 
 _LOGGER = logging.getLogger(__name__)
-
-FIREBASE_API_KEY = "AIzaSyC0aaLXKB8Vatf2xSn1QaFH1kw7rADZlrY"
-SIGNIN_URL = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={FIREBASE_API_KEY}"
 
 # Error types for better user experience
 class CannotConnect(HomeAssistantError):
@@ -58,13 +62,14 @@ class RointeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     await self.async_set_unique_id(email)
                     self._abort_if_unique_id_configured()
                     
-                    refresh_token = await self._async_login(self.hass, email, password)
+                    # Validate credentials using dual authentication system
+                    await self._async_validate_credentials(email, password)
                     
                     return self.async_create_entry(
                         title=f"Rointe Nexa ({email})",
                         data={
-                            "refresh_token": refresh_token, 
-                            "email": email
+                            "email": email,
+                            "password": password
                         },
                     )
                     
@@ -97,78 +102,49 @@ class RointeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
         return re.match(pattern, email) is not None
 
-    async def _async_login(self, hass: HomeAssistant, email: str, password: str) -> str:
-        """Login to Rointe (Firebase) and return refresh_token."""
+    async def _async_validate_credentials(self, email: str, password: str) -> None:
+        """Validate credentials using the dual authentication system."""
         if not self._is_valid_email(email):
             raise InvalidCredentials("Invalid email format")
         
         if not password or len(password) < 6:
             raise InvalidCredentials("Password too short")
 
-        payload = {
-            "email": email,
-            "password": password,
-            "returnSecureToken": True,
-        }
-        
-        timeout = aiohttp.ClientTimeout(total=30, connect=10)
+        _LOGGER.debug("Validating credentials for email: %s", email)
         
         try:
-            async with aiohttp.ClientSession(timeout=timeout) as session:
-                async with session.post(SIGNIN_URL, json=payload) as resp:
-                    if resp.status == 200:
-                        try:
-                            data = await resp.json()
-                            if "refreshToken" not in data:
-                                raise InvalidAuth("No refresh token in response")
-                            
-                            _LOGGER.debug("Login successful for %s", email)
-                            return data["refreshToken"]
-                            
-                        except (ValueError, KeyError) as e:
-                            _LOGGER.error("Invalid response format: %s", e)
-                            raise InvalidAuth("Invalid response format")
-                    
-                    elif resp.status == 400:
-                        try:
-                            error_data = await resp.json()
-                            error_message = error_data.get("error", {}).get("message", "Unknown error")
-                            
-                            if "INVALID_EMAIL" in error_message or "EMAIL_NOT_FOUND" in error_message:
-                                raise InvalidCredentials("Email not found or invalid")
-                            elif "INVALID_PASSWORD" in error_message or "WRONG_PASSWORD" in error_message:
-                                raise InvalidCredentials("Invalid password")
-                            elif "USER_DISABLED" in error_message:
-                                raise InvalidAuth("User account has been disabled")
-                            elif "TOO_MANY_ATTEMPTS_TRY_LATER" in error_message:
-                                raise InvalidAuth("Too many failed attempts. Please try again later")
-                            else:
-                                _LOGGER.error("Authentication error: %s", error_message)
-                                raise InvalidAuth(f"Authentication failed: {error_message}")
-                                
-                        except (ValueError, KeyError):
-                            error_text = await resp.text()
-                            raise InvalidAuth(f"Authentication failed: {error_text}")
-                    
-                    elif resp.status == 429:
-                        raise InvalidAuth("Too many requests. Please try again later")
-                    
-                    elif resp.status >= 500:
-                        raise CannotConnect("Rointe service is temporarily unavailable")
-                    
-                    else:
-                        error_text = await resp.text()
-                        _LOGGER.error("Unexpected response %d: %s", resp.status, error_text)
-                        raise CannotConnect(f"Unexpected error: {resp.status}")
-                        
-        except aiohttp.ClientError as e:
-            _LOGGER.error("Network error during login: %s", e)
-            raise CannotConnect(f"Network error: {e}")
-        except (InvalidCredentials, InvalidAuth, CannotConnect):
-            raise
+            # Create auth instance and validate credentials
+            auth = RointeAuth(email, password)
+            async with auth:
+                # Test REST API authentication
+                if not await auth.async_validate_credentials():
+                    raise InvalidAuth("Invalid email or password")
+                
+                _LOGGER.debug("Credentials validation successful for %s", email)
+                
+        except RointeRestAuthError as e:
+            _LOGGER.error("REST authentication failed: %s", e)
+            if "Invalid credentials" in str(e) or "INVALID_LOGIN_CREDENTIALS" in str(e):
+                raise InvalidCredentials("Invalid email or password")
+            elif "USER_DISABLED" in str(e):
+                raise InvalidAuth("User account has been disabled")
+            elif "TOO_MANY_ATTEMPTS" in str(e):
+                raise InvalidAuth("Too many failed attempts. Please try again later")
+            else:
+                raise InvalidAuth(f"Authentication failed: {e}")
+                
+        except RointeFirebaseAuthError as e:
+            _LOGGER.error("Firebase authentication failed: %s", e)
+            # Firebase auth failure is not critical for validation
+            # We only need REST auth to work for credential validation
+            _LOGGER.warning("Firebase authentication failed, but REST auth succeeded")
+            
         except Exception as e:
-            _LOGGER.error("Unexpected error during login: %s", e)
-            raise CannotConnect(f"Unexpected error: {e}")
+            _LOGGER.error("Unexpected error during credential validation: %s", e)
+            if "Network" in str(e) or "timeout" in str(e).lower():
+                raise CannotConnect(f"Network error: {e}")
+            else:
+                raise CannotConnect(f"Unexpected error: {e}")
 
     @staticmethod
     @callback

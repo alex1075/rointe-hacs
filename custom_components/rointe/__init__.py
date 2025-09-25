@@ -1,9 +1,15 @@
+"""
+Rointe Integration Entry Point
+
+Handles setup and teardown of the dual authentication system.
+"""
+
 import logging
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.exceptions import ConfigEntryNotReady
 from .const import DOMAIN, PLATFORMS
-from .auth import RointeAuth, RointeAuthenticationError
+from .auth import RointeAuth, RointeRestAuthError, RointeFirebaseAuthError
 from .ws import RointeWebSocket
 from .api import RointeAPI, RointeAPIError, RointeNetworkError
 
@@ -14,46 +20,68 @@ async def async_setup(hass: HomeAssistant, config: dict):
     return True
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
-    """Set up Rointe from a config entry."""
+    """Set up Rointe from a config entry using dual authentication."""
     hass.data.setdefault(DOMAIN, {})
     
     try:
-        # Get refresh_token from entry data
-        refresh_token = entry.data.get("refresh_token")
-        if not refresh_token:
-            _LOGGER.error("Missing or empty refresh_token in config entry data: %s", entry.data)
-            raise ConfigEntryNotReady("Missing refresh_token in configuration")
+        # Get email and password from entry data
+        email = entry.data.get("email")
+        password = entry.data.get("password")
         
-        _LOGGER.debug("Setting up Rointe integration for entry %s", entry.entry_id)
+        if not email or not password:
+            _LOGGER.error("Missing email or password in config entry data: %s", entry.data)
+            raise ConfigEntryNotReady("Missing email or password in configuration")
         
-        # Initialize authentication
-        auth = RointeAuth(hass, refresh_token)
+        _LOGGER.debug("Setting up Rointe integration for entry %s with email: %s", entry.entry_id, email)
         
-        # Test authentication
+        # Initialize dual authentication system
+        auth = RointeAuth(email, password)
+        
+        # Test REST API authentication first
         try:
-            await auth.async_refresh()
-            _LOGGER.info("Authentication successful")
-        except RointeAuthenticationError as e:
-            _LOGGER.error("Authentication failed: %s", e)
-            raise ConfigEntryNotReady(f"Authentication failed: {e}")
+            _LOGGER.debug("Testing REST API authentication")
+            await auth.async_login_rest()
+            _LOGGER.info("REST API authentication successful")
+        except RointeRestAuthError as e:
+            _LOGGER.error("REST API authentication failed: %s", e)
+            raise ConfigEntryNotReady(f"REST API authentication failed: {e}")
         
-        # Initialize WebSocket connection
-        ws = RointeWebSocket(hass, auth)
+        # Test Firebase authentication
         try:
-            await ws.connect()
-            _LOGGER.info("WebSocket connection established")
+            _LOGGER.debug("Testing Firebase authentication")
+            await auth.async_login_firebase()
+            _LOGGER.info("Firebase authentication successful")
+        except RointeFirebaseAuthError as e:
+            _LOGGER.warning("Firebase authentication failed: %s", e)
+            _LOGGER.warning("WebSocket functionality may be limited")
+            # Don't fail setup completely - REST API might still work
+        
+        # Initialize WebSocket connection (if Firebase auth succeeded)
+        ws = None
+        try:
+            if auth.is_firebase_token_valid():
+                ws = RointeWebSocket(hass, auth)
+                await ws.connect()
+                _LOGGER.info("WebSocket connection established")
+            else:
+                _LOGGER.warning("Firebase token not available, skipping WebSocket connection")
         except Exception as e:
             _LOGGER.error("Failed to establish WebSocket connection: %s", e)
-            raise ConfigEntryNotReady(f"WebSocket connection failed: {e}")
+            _LOGGER.warning("Continuing without WebSocket - REST API functionality available")
+            ws = None
         
         # Initialize API and discover devices
         api = RointeAPI(auth)
         try:
+            _LOGGER.debug("Starting device discovery")
             devices = await api.list_devices()
             if not devices:
                 _LOGGER.warning("No devices discovered")
             else:
                 _LOGGER.info("Discovered %d devices", len(devices))
+                for device in devices:
+                    _LOGGER.debug("Device: %s (%s) in zone %s", 
+                                device.get("id"), device.get("name"), device.get("zone"))
         except (RointeAPIError, RointeNetworkError) as e:
             _LOGGER.error("Device discovery failed: %s", e)
             # Don't fail setup completely - allow partial functionality
@@ -67,13 +95,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             "auth": auth, 
             "ws": ws, 
             "api": api,
-            "devices": devices
+            "devices": devices,
+            "email": email
         }
         
         # Set up platforms
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
         
-        _LOGGER.info("Rointe integration setup completed successfully")
+        _LOGGER.info("Rointe integration setup completed successfully with dual authentication")
         return True
         
     except Exception as e:

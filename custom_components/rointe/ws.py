@@ -1,3 +1,10 @@
+"""
+Rointe WebSocket Module
+
+Handles WebSocket connection using Firebase authentication.
+Uses Firebase ID token for WebSocket authentication.
+"""
+
 import aiohttp
 import asyncio
 import logging
@@ -14,6 +21,7 @@ SIGNAL_UPDATE = "rointe_device_update"
 
 class RointeWebSocket:
     def __init__(self, hass, auth):
+        """Initialize WebSocket client with dual authentication handler"""
         self.hass = hass
         self.auth = auth
         self.ws = None
@@ -25,6 +33,7 @@ class RointeWebSocket:
         self.base_reconnect_delay = 1  # Start with 1 second
         self.max_reconnect_delay = 60  # Max 60 seconds between attempts
         self.jitter_range = 0.1  # Add 10% random jitter
+        _LOGGER.debug("Initialized RointeWebSocket with dual authentication")
 
     async def connect(self):
         """Initial connection to WebSocket."""
@@ -32,10 +41,10 @@ class RointeWebSocket:
         await self._connect()
 
     async def _connect(self):
-        """Internal method to establish WebSocket connection."""
+        """Internal method to establish WebSocket connection with Firebase authentication."""
         try:
-            # Refresh token before connecting
-            id_token = await self.auth.async_refresh()
+            # Get valid Firebase ID token from auth handler
+            id_token = await self.auth.async_firebase_token()
             url = f"{FIREBASE_URL}&auth={id_token}"
             
             # Create new session if needed

@@ -1,3 +1,10 @@
+"""
+Rointe API Module
+
+Handles REST API calls using the dual authentication system.
+Uses REST token for all API operations.
+"""
+
 import aiohttp
 import asyncio
 import logging
@@ -23,8 +30,10 @@ class RointeNetworkError(RointeAPIError):
 
 class RointeAPI:
     def __init__(self, auth):
+        """Initialize API client with authentication handler"""
         self.auth = auth
         self.session: Optional[aiohttp.ClientSession] = None
+        _LOGGER.debug("Initialized RointeAPI with dual authentication")
 
     async def _get_session(self) -> aiohttp.ClientSession:
         """Get or create aiohttp session."""
@@ -40,23 +49,40 @@ class RointeAPI:
             self.session = None
 
     async def _get(self, path: str, retry_count: int = 0) -> Dict[str, Any]:
-        """Make GET request with retry logic and error handling."""
+        """Make GET request with REST token authentication and retry logic."""
         try:
-            token = await self.auth.async_refresh()
+            # Get valid REST token from auth handler
+            token = await self.auth.async_rest_token()
             headers = {"token": token}
             url = f"{API_BASE}{path}"
             
             session = await self._get_session()
             
-            _LOGGER.debug("Making API request: GET %s", path)
+            _LOGGER.debug("Making REST API request: GET %s", path)
             async with session.get(url, headers=headers) as resp:
                 if resp.status == 200:
                     data = await resp.json()
-                    _LOGGER.debug("API request successful: GET %s", path)
+                    _LOGGER.debug("REST API request successful: GET %s", path)
                     return data
                 elif resp.status == 401:
-                    _LOGGER.error("Authentication failed for API request: GET %s", path)
-                    raise RointeAuthenticationError(f"Authentication failed: {resp.status}")
+                    _LOGGER.error("Authentication failed for REST API request: GET %s", path)
+                    # Token might be expired, try to refresh
+                    try:
+                        await self.auth.async_login_rest()
+                        token = await self.auth.async_rest_token()
+                        headers = {"token": token}
+                        
+                        # Retry once with new token
+                        async with session.get(url, headers=headers) as retry_resp:
+                            if retry_resp.status == 200:
+                                data = await retry_resp.json()
+                                _LOGGER.debug("REST API request successful after token refresh: GET %s", path)
+                                return data
+                            else:
+                                raise RointeAuthenticationError(f"Authentication failed even after refresh: {retry_resp.status}")
+                    except Exception as e:
+                        raise RointeAuthenticationError(f"Authentication failed: {e}")
+                        
                 elif resp.status >= 500:
                     # Server error - retry
                     _LOGGER.warning("Server error %d for GET %s, attempt %d/%d", 
@@ -68,8 +94,8 @@ class RointeAPI:
                         raise RointeAPIError(f"Server error after {MAX_RETRIES} retries: {resp.status}")
                 else:
                     error_text = await resp.text()
-                    _LOGGER.error("API request failed: GET %s -> %d: %s", path, resp.status, error_text)
-                    raise RointeAPIError(f"API request failed: {resp.status} - {error_text}")
+                    _LOGGER.error("REST API request failed: GET %s -> %d: %s", path, resp.status, error_text)
+                    raise RointeAPIError(f"REST API request failed: {resp.status} - {error_text}")
                     
         except aiohttp.ClientError as e:
             _LOGGER.warning("Network error for GET %s, attempt %d/%d: %s", 
@@ -86,10 +112,13 @@ class RointeAPI:
             raise RointeAPIError(f"Unexpected error: {e}")
 
     async def list_devices(self) -> List[Dict[str, str]]:
-        """Discover all devices with enhanced error handling."""
+        """Discover all devices using REST API authentication."""
         devices = []
         try:
-            _LOGGER.info("Starting device discovery")
+            _LOGGER.info("Starting device discovery with REST API authentication")
+            
+            # Ensure we have valid REST authentication
+            await self.auth.async_login_rest()
             
             # Get installations
             installations = await self._get("/installations")
@@ -179,3 +208,72 @@ class RointeAPI:
         except Exception as e:
             _LOGGER.error("Device discovery failed: %s", e)
             raise
+
+    async def get_device_status(self, device_id: str) -> Dict[str, Any]:
+        """Get current status of a specific device."""
+        try:
+            _LOGGER.debug("Getting status for device: %s", device_id)
+            return await self._get(f"/devices/{device_id}/status")
+        except Exception as e:
+            _LOGGER.error("Failed to get status for device %s: %s", device_id, e)
+            raise
+
+    async def set_device_temperature(self, device_id: str, temperature: float) -> bool:
+        """Set target temperature for a device."""
+        try:
+            _LOGGER.debug("Setting temperature for device %s to %s°C", device_id, temperature)
+            
+            # Get valid REST token
+            token = await self.auth.async_rest_token()
+            headers = {
+                "token": token,
+                "Content-Type": "application/json"
+            }
+            
+            url = f"{API_BASE}/devices/{device_id}/temperature"
+            data = {"temperature": temperature}
+            
+            session = await self._get_session()
+            async with session.post(url, json=data, headers=headers) as resp:
+                if resp.status == 200:
+                    _LOGGER.debug("Temperature set successfully for device %s", device_id)
+                    return True
+                else:
+                    error_text = await resp.text()
+                    _LOGGER.error("Failed to set temperature for device %s: %d - %s", 
+                                device_id, resp.status, error_text)
+                    return False
+                    
+        except Exception as e:
+            _LOGGER.error("Error setting temperature for device %s: %s", device_id, e)
+            return False
+
+    async def set_device_power(self, device_id: str, power: bool) -> bool:
+        """Set power state for a device."""
+        try:
+            _LOGGER.debug("Setting power for device %s to %s", device_id, power)
+            
+            # Get valid REST token
+            token = await self.auth.async_rest_token()
+            headers = {
+                "token": token,
+                "Content-Type": "application/json"
+            }
+            
+            url = f"{API_BASE}/devices/{device_id}/power"
+            data = {"power": power}
+            
+            session = await self._get_session()
+            async with session.post(url, json=data, headers=headers) as resp:
+                if resp.status == 200:
+                    _LOGGER.debug("Power set successfully for device %s", device_id)
+                    return True
+                else:
+                    error_text = await resp.text()
+                    _LOGGER.error("Failed to set power for device %s: %d - %s", 
+                                device_id, resp.status, error_text)
+                    return False
+                    
+        except Exception as e:
+            _LOGGER.error("Error setting power for device %s: %s", device_id, e)
+            return False
