@@ -96,7 +96,7 @@ class RointeWebSocket:
                     if path.startswith("devices/") and "/data" in path:
                         device_id = path.split("/")[1]
                         state = payload["b"].get("d", {})
-                        async_dispatcher_send(self.hass, SIGNAL_UPDATE, device_id, state)
+                        async_dispatcher_send(self.hass, f"{SIGNAL_UPDATE}_{device_id}", state)
                         _LOGGER.debug("Received update for device %s: %s", device_id, state)
         except json.JSONDecodeError as e:
             _LOGGER.warning("Failed to parse WebSocket message: %s", e)
