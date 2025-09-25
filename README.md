@@ -1,7 +1,7 @@
 # Rointe Nexa – Home Assistant Custom Integration
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-blue.svg)](https://hacs.xyz/)
-[![Version](https://img.shields.io/badge/version-0.0.8-green.svg)](https://github.com/aiautobusinesses/rointe-hacs)
+[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/aiautobusinesses/rointe-hacs)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 This is a custom integration for [Home Assistant](https://www.home-assistant.io/) that connects to the **Rointe Nexa** cloud platform. It allows you to control your Rointe radiators and heaters directly from Home Assistant.
