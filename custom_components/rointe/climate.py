@@ -113,7 +113,7 @@ class RointeHeater(ClimateEntity):
         self._last_seen = self._device_info.get("lastSeen")
         
         # Connect to WebSocket updates
-        async_dispatcher_connect(hass, SIGNAL_UPDATE, self._handle_update)
+        async_dispatcher_connect(hass, f"{SIGNAL_UPDATE}_{self.device_id}", self._handle_update)
 
     @property
     def name(self) -> str:
@@ -235,13 +235,11 @@ class RointeHeater(ClimateEntity):
         
         return attrs
 
-    def _handle_update(self, device_id: str, state: dict):
+    def _handle_update(self, state: dict):
         """Handle WebSocket updates."""
-        if device_id != self.device_id:
-            return
         
         try:
-            _LOGGER.debug("Received update for device %s: %s", device_id, state)
+            _LOGGER.debug("Received update for device %s: %s", self.device_id, state)
             
             # Update device status information
             self._device_status = state.get("deviceStatus", self._device_status)
@@ -254,7 +252,7 @@ class RointeHeater(ClimateEntity):
                 if MIN_TEMP <= temp <= MAX_TEMP:
                     self._current_temp = temp
                 else:
-                    _LOGGER.warning("Temperature %s out of range for device %s", temp, device_id)
+                    _LOGGER.warning("Temperature %s out of range for device %s", temp, self.device_id)
             
             # Update target temperature
             if "um_max_temp" in state and isinstance(state["um_max_temp"], (int, float)):
@@ -262,7 +260,7 @@ class RointeHeater(ClimateEntity):
                 if MIN_TEMP <= temp <= MAX_TEMP:
                     self._target_temp = temp
                 else:
-                    _LOGGER.warning("Target temperature %s out of range for device %s", temp, device_id)
+                    _LOGGER.warning("Target temperature %s out of range for device %s", temp, self.device_id)
             
             # Update HVAC mode based on device status
             if "status" in state and isinstance(state["status"], str):
@@ -272,7 +270,7 @@ class RointeHeater(ClimateEntity):
                 elif status == "ice":
                     self._hvac_mode = HVACMode.OFF
                 else:
-                    _LOGGER.warning("Unknown status '%s' for device %s", status, device_id)
+                    _LOGGER.warning("Unknown status '%s' for device %s", status, self.device_id)
             
             # Update device information if available
             if "model" in state and isinstance(state["model"], str):
@@ -291,7 +289,7 @@ class RointeHeater(ClimateEntity):
             self.async_write_ha_state()
             
         except Exception as e:
-            _LOGGER.error("Error handling update for device %s: %s", device_id, e)
+            _LOGGER.error("Error handling update for device %s: %s", self.device_id, e)
 
     async def async_set_hvac_mode(self, hvac_mode: str):
         """Set new HVAC mode."""
