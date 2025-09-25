@@ -103,11 +103,20 @@ class RointeAuth:
                 "password": self.password
             }
             
-            # Make login request
+            # Make login request with browser-like headers
+            headers = {
+                "Content-Type": "application/json",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "application/json, text/plain, */*",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Origin": "https://rointenexa.com",
+                "Referer": "https://rointenexa.com/",
+            }
+            
             async with session.post(
                 ROINTE_LOGIN_URL,
                 json=login_data,
-                headers={"Content-Type": "application/json"},
+                headers=headers,
                 timeout=aiohttp.ClientTimeout(total=30)
             ) as response:
                 response_data = await response.json()
@@ -132,6 +141,13 @@ class RointeAuth:
                     error_msg = response_data.get("error", {}).get("message", "Invalid credentials")
                     _LOGGER.error(f"REST login failed: {error_msg}")
                     raise RointeRestAuthError(f"Invalid credentials: {error_msg}")
+                    
+                elif response.status == 418:
+                    # Handle 418 "I'm a teapot" response which contains error message
+                    data = response_data.get("data", {})
+                    error_msg = data.get("message", "Authentication failed")
+                    _LOGGER.error(f"REST login failed (418): {error_msg}")
+                    raise RointeRestAuthError(f"Authentication failed: {error_msg}")
                     
                 else:
                     error_msg = response_data.get("error", {}).get("message", f"HTTP {response.status}")
@@ -262,7 +278,7 @@ class RointeAuth:
             
             # Prepare refresh payload
             refresh_data = {
-                "grant_type": "refresh_token",
+            "grant_type": "refresh_token",
                 "refresh_token": self._firebase_refresh_token
             }
             
