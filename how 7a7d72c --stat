@@ -1,0 +1,30 @@
+[33mcommit 7a7d72cfb42cc9ef21cf78c78eae3cfa74159ace[m
+Author: Alex <aiautobusinesses@gmail.com>
+Date:   Thu Sep 25 22:28:57 2025 +0100
+
+    Implement dual authentication system
+    
+    - Complete rewrite of auth.py to handle both REST API and Firebase authentication
+    - Update api.py to use REST token for all API calls
+    - Update ws.py to use Firebase token for WebSocket connection
+    - Update config_flow.py to validate credentials using REST API
+    - Update __init__.py to initialize dual authentication system
+    - Add comprehensive error handling and token refresh logic
+    - Support both authentication methods as required by Rointe system
+    
+    This resolves the authentication issues by implementing the correct
+    dual authentication approach for Rointe's web + mobile app system.
+
+custom_components/rointe/__init__.py
+custom_components/rointe/api.py
+custom_components/rointe/auth.py
+custom_components/rointe/config_flow.py
+custom_components/rointe/ws.py
+find_firebase_key.py
+test_auth_detailed.py
+test_credentials.py
+test_dual_auth.py
+test_firebase_projects.py
+test_web_auth.py
+test_web_simple.py
+test_website_auth.py
