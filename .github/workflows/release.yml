@@ -1,0 +1,63 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Extract changelog for version
+        id: changelog
+        run: |
+          # Extract changelog section for this version
+          if [ -f "CHANGELOG.md" ]; then
+            # Find the section for this version
+            VERSION="${{ steps.get_version.outputs.VERSION }}"
+            # Remove 'v' prefix if present
+            VERSION_NUM=${VERSION#v}
+            
+            # Extract the changelog section (from ## [version] to next ## [version] or end of file)
+            CHANGELOG_SECTION=$(awk "/^## \[${VERSION_NUM}\]/{flag=1;next}/^## \[/{flag=0}flag" CHANGELOG.md)
+            
+            if [ -n "$CHANGELOG_SECTION" ]; then
+              echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+              echo "$CHANGELOG_SECTION" >> $GITHUB_OUTPUT
+              echo "EOF" >> $GITHUB_OUTPUT
+            else
+              echo "CHANGELOG=No changelog found for version ${VERSION_NUM}" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "CHANGELOG=No CHANGELOG.md file found" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          release_name: Release ${{ steps.get_version.outputs.VERSION }}
+          body: |
+            ## Rointe Nexa Integration ${{ steps.get_version.outputs.VERSION }}
+            
+            ${{ steps.changelog.outputs.CHANGELOG }}
+            
+            ## Installation
+            Install via HACS or manually by downloading this release.
+            
+            ## Documentation
+            See the [README.md](https://github.com/aiautobusinesses/rointe-hacs/blob/master/README.md) for setup instructions.
+          draft: false
+          prerelease: false
