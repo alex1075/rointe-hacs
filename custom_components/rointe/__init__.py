@@ -18,7 +18,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     hass.data.setdefault(DOMAIN, {})
     
     try:
+        # Check if refresh_token exists in entry data
+        if "refresh_token" not in entry.data:
+            _LOGGER.error("Missing refresh_token in config entry data: %s", entry.data)
+            raise ConfigEntryNotReady("Missing refresh_token in configuration")
+        
         refresh_token = entry.data["refresh_token"]
+        if not refresh_token:
+            _LOGGER.error("Empty refresh_token in config entry")
+            raise ConfigEntryNotReady("Empty refresh_token in configuration")
+        
         _LOGGER.debug("Setting up Rointe integration for entry %s", entry.entry_id)
         
         # Initialize authentication

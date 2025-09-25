@@ -60,13 +60,19 @@ class RointeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     
                     refresh_token = await self._async_login(self.hass, email, password)
                     
-                    return self.async_create_entry(
-                        title=f"Rointe Nexa ({email})",
-                        data={
-                            "refresh_token": refresh_token, 
-                            "email": email
-                        },
-                    )
+                    # Validate refresh token
+                    if not refresh_token:
+                        _LOGGER.error("No refresh token received from authentication")
+                        errors["base"] = "auth_failed"
+                    else:
+                        _LOGGER.info("Authentication successful, creating config entry")
+                        return self.async_create_entry(
+                            title=f"Rointe Nexa ({email})",
+                            data={
+                                "refresh_token": refresh_token, 
+                                "email": email
+                            },
+                        )
                     
                 except InvalidCredentials:
                     errors[CONF_EMAIL] = "invalid_credentials"
