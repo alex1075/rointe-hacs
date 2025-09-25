@@ -147,12 +147,19 @@ class RointeAPI:
                                         continue
                                     
                                     device_name = device.get("name", device_id)
-                                    devices.append({
+                                    device_info = {
                                         "id": device_id,
                                         "name": device_name,
-                                        "zone": zone_name
-                                    })
-                                    _LOGGER.debug("Added device: %s (%s) in zone %s", device_id, device_name, zone_name)
+                                        "zone": zone_name,
+                                        "model": device.get("model"),
+                                        "power": device.get("power"),
+                                        "version": device.get("version"),
+                                        "type": device.get("type"),
+                                    }
+                                    devices.append(device_info)
+                                    _LOGGER.debug("Added device: %s (%s) in zone %s - Model: %s, Power: %sW", 
+                                                device_id, device_name, zone_name, 
+                                                device.get("model", "Unknown"), device.get("power", "Unknown"))
                                     
                                 except Exception as e:
                                     _LOGGER.error("Error processing device in zone %s: %s", zone_id, e)

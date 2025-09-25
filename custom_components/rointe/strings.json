@@ -2,16 +2,32 @@
     "config": {
       "step": {
         "user": {
-          "title": "Connect to Rointe",
-          "description": "Enter your Rointe Nexa app credentials.",
+          "title": "Connect to Rointe Nexa",
+          "description": "Enter your Rointe Nexa app credentials. These are the same credentials you use in the Rointe mobile app.",
           "data": {
-            "email": "Email",
+            "email": "Email Address",
             "password": "Password"
+          }
+        },
+        "init": {
+          "title": "Rointe Options",
+          "description": "Configure options for Rointe integration (Current account: {current_email})",
+          "data": {
+            "show_debug_logs": "Enable debug logging"
           }
         }
       },
       "error": {
-        "auth": "Invalid email or password"
+        "invalid_email_format": "Please enter a valid email address",
+        "password_too_short": "Password must be at least 6 characters long",
+        "invalid_credentials": "Invalid email or password. Please check your credentials and try again.",
+        "invalid_auth": "Authentication failed. Please check your credentials.",
+        "cannot_connect": "Unable to connect to Rointe services. Please check your internet connection and try again.",
+        "unknown": "An unexpected error occurred. Please try again."
+      },
+      "abort": {
+        "already_configured": "This Rointe account is already configured.",
+        "reauth_successful": "Re-authentication successful!"
       }
     }
   }  
