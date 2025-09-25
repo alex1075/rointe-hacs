@@ -8,11 +8,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
     SensorEntityDescription,
 )
-from homeassistant.const import (
-    POWER_WATT,
-    ENERGY_KILO_WATT_HOUR,
-    TEMP_CELSIUS,
-)
+# Use string literals for maximum compatibility
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity
@@ -34,7 +30,7 @@ SENSOR_TYPES = {
         key=SENSOR_TYPE_POWER,
         name="Power Consumption",
         device_class=SensorDeviceClass.POWER,
-        native_unit_of_measurement=POWER_WATT,
+        native_unit_of_measurement="W",
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:flash",
     ),
@@ -42,7 +38,7 @@ SENSOR_TYPES = {
         key=SENSOR_TYPE_ENERGY,
         name="Energy Consumption",
         device_class=SensorDeviceClass.ENERGY,
-        native_unit_of_measurement=ENERGY_KILO_WATT_HOUR,
+        native_unit_of_measurement="kWh",
         state_class=SensorStateClass.TOTAL_INCREASING,
         icon="mdi:lightning-bolt",
     ),
@@ -50,7 +46,7 @@ SENSOR_TYPES = {
         key=SENSOR_TYPE_CURRENT_TEMP,
         name="Current Temperature",
         device_class=SensorDeviceClass.TEMPERATURE,
-        native_unit_of_measurement=TEMP_CELSIUS,
+        native_unit_of_measurement="°C",
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:thermometer",
     ),
