@@ -2,6 +2,14 @@
 
 All notable changes to the Rointe Nexa integration will be documented in this file.
 
+## [0.0.7] - 2024-01-XX
+### Fixed
+- Fixed device discovery - integration now properly finds Rointe devices
+- Corrected API response parsing for installations endpoint
+- Fixed zone processing (devices are nested directly in zones)
+- Added automated GitHub release workflows for HACS update notifications
+- Integration now discovers devices: "Rad. 6062EC" in "Utility" zone
+
 ## [0.0.5] - 2024-01-XX
 ### Fixed
 - Resolved "cannot import name 'temp_celcuis'" error
