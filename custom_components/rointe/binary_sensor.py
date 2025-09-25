@@ -9,7 +9,7 @@ from homeassistant.components.binary_sensor import (
 )
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers.entity import Entity
 
 from .const import (
     DOMAIN,
@@ -34,8 +34,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     """Set up Rointe binary sensors from a config entry."""
     _LOGGER.debug("Setting up Rointe binary sensors for entry: %s", entry.entry_id)
     
-    # Get the coordinator and API
-    coordinator = hass.data[DOMAIN][entry.entry_id].get("coordinator")
+    # Get the API
     api = hass.data[DOMAIN][entry.entry_id].get("api")
     
     if not api:
@@ -64,7 +63,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
         # Create binary sensors for each device
         for sensor_type, description in BINARY_SENSOR_TYPES.items():
             entity = RointeBinarySensor(
-                coordinator=coordinator,
                 api=api,
                 device_info=device_info,
                 sensor_type=sensor_type,
@@ -76,19 +74,18 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities(entities, True)
 
 
-class RointeBinarySensor(CoordinatorEntity, BinarySensorEntity):
+class RointeBinarySensor(Entity, BinarySensorEntity):
     """Representation of a Rointe binary sensor."""
     
     def __init__(
         self,
-        coordinator,
         api,
         device_info: Dict[str, Any],
         sensor_type: str,
         description: BinarySensorEntityDescription,
     ):
         """Initialize the binary sensor."""
-        super().__init__(coordinator)
+        super().__init__()
         
         self._api = api
         self._device_info = device_info
@@ -121,10 +118,6 @@ class RointeBinarySensor(CoordinatorEntity, BinarySensorEntity):
             "sw_version": self._device_version,
         }
     
-    @callback
-    def _handle_coordinator_update(self) -> None:
-        """Handle updated data from the coordinator."""
-        self.async_write_ha_state()
     
     async def async_added_to_hass(self):
         """When entity is added to hass."""

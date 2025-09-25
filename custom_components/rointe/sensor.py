@@ -16,7 +16,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers.entity import Entity
 
 from .const import (
     DOMAIN,
@@ -62,8 +62,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     """Set up Rointe sensors from a config entry."""
     _LOGGER.debug("Setting up Rointe sensors for entry: %s", entry.entry_id)
     
-    # Get the coordinator and API
-    coordinator = hass.data[DOMAIN][entry.entry_id].get("coordinator")
+    # Get the API
     api = hass.data[DOMAIN][entry.entry_id].get("api")
     
     if not api:
@@ -107,7 +106,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
                     continue  # Skip power sensors for thermostats
             
             entity = RointeSensor(
-                coordinator=coordinator,
                 api=api,
                 device_info=device_info,
                 sensor_type=sensor_type,
@@ -119,19 +117,18 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities(entities, True)
 
 
-class RointeSensor(CoordinatorEntity, SensorEntity):
+class RointeSensor(Entity, SensorEntity):
     """Representation of a Rointe sensor."""
     
     def __init__(
         self,
-        coordinator,
         api,
         device_info: Dict[str, Any],
         sensor_type: str,
         description: SensorEntityDescription,
     ):
         """Initialize the sensor."""
-        super().__init__(coordinator)
+        super().__init__()
         
         self._api = api
         self._device_info = device_info
@@ -164,10 +161,6 @@ class RointeSensor(CoordinatorEntity, SensorEntity):
             "sw_version": device_info.get("version"),
         }
     
-    @callback
-    def _handle_coordinator_update(self) -> None:
-        """Handle updated data from the coordinator."""
-        self.async_write_ha_state()
     
     async def async_added_to_hass(self):
         """When entity is added to hass."""
