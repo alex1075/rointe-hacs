@@ -10,7 +10,9 @@ import voluptuous as vol
 import re
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
+# Use string constants for better compatibility
+CONF_EMAIL = "email"
+CONF_PASSWORD = "password"
 from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN
