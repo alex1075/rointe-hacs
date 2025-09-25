@@ -11,8 +11,8 @@ from .ws import SIGNAL_UPDATE
 
 _LOGGER = logging.getLogger(__name__)
 
-# Enhanced HVAC modes for better HA compatibility
-HVAC_MODES = [HVACMode.OFF, HVACMode.HEAT, HVACMode.AUTO, HVACMode.HEAT_COOL]
+# Rointe only supports OFF and HEAT modes
+HVAC_MODES = [HVACMode.OFF, HVACMode.HEAT]
 
 # Rointe device states map to HVAC modes
 # comfort/eco -> HEAT mode, ice -> OFF mode
@@ -20,15 +20,11 @@ HVAC_MODES = [HVACMode.OFF, HVACMode.HEAT, HVACMode.AUTO, HVACMode.HEAT_COOL]
 # Temperature limits for Rointe devices
 MIN_TEMP = 5.0
 MAX_TEMP = 35.0
-DEFAULT_MIN_TEMP = 7.0
-DEFAULT_MAX_TEMP = 30.0
 
 # Mode-specific temperature ranges
 MODE_TEMPERATURES = {
     HVACMode.OFF: {"min": 5.0, "max": 7.0, "default": 7.0},
     HVACMode.HEAT: {"min": 15.0, "max": 35.0, "default": 21.0},
-    HVACMode.AUTO: {"min": 15.0, "max": 35.0, "default": 21.0},
-    HVACMode.HEAT_COOL: {"min": 15.0, "max": 35.0, "default": 21.0},
 }
 
 class RointeDeviceError(Exception):
@@ -251,12 +247,6 @@ class RointeHeater(ClimateEntity):
             updates = {}
             if hvac_mode == HVACMode.HEAT:
                 updates = {"status": "comfort", "power": 2}
-            elif hvac_mode == HVACMode.AUTO:
-                # AUTO mode maps to comfort with automatic temperature adjustment
-                updates = {"status": "comfort", "power": 2}
-            elif hvac_mode == HVACMode.HEAT_COOL:
-                # HEAT_COOL mode maps to eco for energy efficiency
-                updates = {"status": "eco", "power": 2}
             elif hvac_mode == HVACMode.OFF:
                 updates = {"status": "ice", "power": 1, "temp": 7}
             
