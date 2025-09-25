@@ -121,9 +121,16 @@ class RointeAPI:
             await self.auth.async_login_rest()
             
             # Get installations
-            installations = await self._get("/installations")
+            installations_response = await self._get("/installations")
+            
+            # Extract installations from nested 'data' key
+            if isinstance(installations_response, dict) and "data" in installations_response:
+                installations = installations_response["data"]
+            else:
+                installations = installations_response
+                
             if not isinstance(installations, list):
-                _LOGGER.error("Invalid installations response format")
+                _LOGGER.error("Invalid installations response format: %s", type(installations))
                 raise RointeAPIError("Invalid installations response format")
             
             _LOGGER.debug("Found %d installations", len(installations))
@@ -142,18 +149,14 @@ class RointeAPI:
                     
                     _LOGGER.debug("Processing installation %d with %d zones", i, len(zones))
                     
-                    # Process each zone
-                    for zone_id in zones:
+                    # Process each zone (zones now contain devices directly)
+                    for zone in zones:
                         try:
-                            if not isinstance(zone_id, str):
-                                _LOGGER.warning("Invalid zone ID format: %s", zone_id)
+                            if not isinstance(zone, dict):
+                                _LOGGER.warning("Invalid zone format: %s", zone)
                                 continue
                                 
-                            zone = await self._get(f"/zones/{zone_id}")
-                            if not isinstance(zone, dict):
-                                _LOGGER.warning("Invalid zone response for zone %s", zone_id)
-                                continue
-                            
+                            zone_id = zone.get("id")
                             zone_name = zone.get("name", f"Zone {zone_id}")
                             devices_list = zone.get("devices", [])
                             
@@ -184,6 +187,9 @@ class RointeAPI:
                                         "power": device.get("power"),
                                         "version": device.get("version"),
                                         "type": device.get("type"),
+                                        "serialNumber": device.get("serialNumber"),
+                                        "mac": device.get("mac"),
+                                        "deviceStatus": device.get("deviceStatus"),
                                     }
                                     devices.append(device_info)
                                     _LOGGER.debug("Added device: %s (%s) in zone %s - Model: %s, Power: %sW", 
