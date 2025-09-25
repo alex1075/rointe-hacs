@@ -7,7 +7,7 @@ from homeassistant.components.climate import (
 )
 from homeassistant.const import ATTR_TEMPERATURE
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
-from .const import DEVICE_MODELS
+from .const import DOMAIN, DEVICE_MODELS
 from .ws import SIGNAL_UPDATE
 
 _LOGGER = logging.getLogger(__name__)
@@ -35,7 +35,7 @@ class RointeDeviceError(Exception):
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up Rointe climate entities."""
     try:
-        data = hass.data["rointe"][entry.entry_id]
+        data = hass.data[DOMAIN][entry.entry_id]
         ws = data["ws"]
         devices = data["devices"]
 

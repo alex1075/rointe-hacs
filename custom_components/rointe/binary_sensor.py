@@ -34,20 +34,15 @@ async def async_setup_entry(hass, entry, async_add_entities):
     """Set up Rointe binary sensors from a config entry."""
     _LOGGER.debug("Setting up Rointe binary sensors for entry: %s", entry.entry_id)
     
-    # Get the API
-    api = hass.data[DOMAIN][entry.entry_id].get("api")
+    # Get the integration data
+    data = hass.data[DOMAIN][entry.entry_id]
+    devices = data.get("devices", [])
     
-    if not api:
-        _LOGGER.error("API not available for binary sensor setup")
+    if not devices:
+        _LOGGER.warning("No devices found for binary sensor setup")
         return
     
-    # Get devices from API
-    try:
-        devices = await api.list_devices()
-        _LOGGER.debug("Found %d devices for binary sensor setup", len(devices))
-    except Exception as e:
-        _LOGGER.error("Failed to get devices for binary sensor setup: %s", e)
-        return
+    _LOGGER.debug("Found %d devices for binary sensor setup", len(devices))
     
     entities = []
     
@@ -63,7 +58,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
         # Create binary sensors for each device
         for sensor_type, description in BINARY_SENSOR_TYPES.items():
             entity = RointeBinarySensor(
-                api=api,
                 device_info=device_info,
                 sensor_type=sensor_type,
                 description=description,
@@ -79,15 +73,12 @@ class RointeBinarySensor(Entity, BinarySensorEntity):
     
     def __init__(
         self,
-        api,
         device_info: Dict[str, Any],
         sensor_type: str,
         description: BinarySensorEntityDescription,
     ):
         """Initialize the binary sensor."""
         super().__init__()
-        
-        self._api = api
         self._device_info = device_info
         self._sensor_type = sensor_type
         self.entity_description = description
