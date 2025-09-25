@@ -1,16 +1,10 @@
 import logging
 from typing import Optional, Dict, Any
-from homeassistant.components.climate import ClimateEntity
-from homeassistant.components.climate.const import (
-    HVAC_MODE_OFF,
-    HVAC_MODE_HEAT,
-    HVAC_MODE_AUTO,
-    HVAC_MODE_HEAT_COOL,
-    SUPPORT_TARGET_TEMPERATURE,
-    SUPPORT_PRESET_MODE,
-    PRESET_ECO,
-    PRESET_COMFORT,
-    PRESET_NONE,
+from homeassistant.components.climate import (
+    ClimateEntity,
+    ClimateEntityFeature,
+    HVACMode,
+    PresetMode,
 )
 from homeassistant.const import TEMP_CELSIUS, ATTR_TEMPERATURE
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
@@ -19,10 +13,10 @@ from .ws import SIGNAL_UPDATE
 _LOGGER = logging.getLogger(__name__)
 
 # Enhanced HVAC modes for better HA compatibility
-HVAC_MODES = [HVAC_MODE_OFF, HVAC_MODE_HEAT, HVAC_MODE_AUTO, HVAC_MODE_HEAT_COOL]
+HVAC_MODES = [HVACMode.OFF, HVACMode.HEAT, HVACMode.AUTO, HVACMode.HEAT_COOL]
 
 # Preset modes for Rointe-specific features
-PRESET_MODES = [PRESET_NONE, PRESET_COMFORT, PRESET_ECO]
+PRESET_MODES = [PresetMode.NONE, PresetMode.COMFORT, PresetMode.ECO]
 
 # Temperature limits for Rointe devices
 MIN_TEMP = 5.0
@@ -32,10 +26,10 @@ DEFAULT_MAX_TEMP = 30.0
 
 # Mode-specific temperature ranges
 MODE_TEMPERATURES = {
-    HVAC_MODE_OFF: {"min": 5.0, "max": 7.0, "default": 7.0},
-    HVAC_MODE_HEAT: {"min": 15.0, "max": 35.0, "default": 21.0},
-    HVAC_MODE_AUTO: {"min": 15.0, "max": 35.0, "default": 21.0},
-    HVAC_MODE_HEAT_COOL: {"min": 15.0, "max": 35.0, "default": 21.0},
+    HVACMode.OFF: {"min": 5.0, "max": 7.0, "default": 7.0},
+    HVACMode.HEAT: {"min": 15.0, "max": 35.0, "default": 21.0},
+    HVACMode.AUTO: {"min": 15.0, "max": 35.0, "default": 21.0},
+    HVACMode.HEAT_COOL: {"min": 15.0, "max": 35.0, "default": 21.0},
 }
 
 class RointeDeviceError(Exception):
@@ -92,8 +86,8 @@ class RointeHeater(ClimateEntity):
         self.device_id = device_id
         self._name = name
         self._device_info = device_info or {}
-        self._hvac_mode = HVAC_MODE_OFF
-        self._preset_mode = PRESET_NONE
+        self._hvac_mode = HVACMode.OFF
+        self._preset_mode = PresetMode.NONE
         self._current_temp: Optional[float] = None
         self._target_temp: Optional[float] = None
         self._available = True
@@ -118,7 +112,7 @@ class RointeHeater(ClimateEntity):
     @property
     def supported_features(self):
         """Return the list of supported features."""
-        return SUPPORT_TARGET_TEMPERATURE | SUPPORT_PRESET_MODE
+        return ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
 
     @property
     def temperature_unit(self) -> str:
@@ -158,13 +152,13 @@ class RointeHeater(ClimateEntity):
     @property
     def min_temp(self) -> float:
         """Return the minimum temperature for current HVAC mode."""
-        mode_config = MODE_TEMPERATURES.get(self._hvac_mode, MODE_TEMPERATURES[HVAC_MODE_HEAT])
+        mode_config = MODE_TEMPERATURES.get(self._hvac_mode, MODE_TEMPERATURES[HVACMode.HEAT])
         return mode_config["min"]
 
     @property
     def max_temp(self) -> float:
         """Return the maximum temperature for current HVAC mode."""
-        mode_config = MODE_TEMPERATURES.get(self._hvac_mode, MODE_TEMPERATURES[HVAC_MODE_HEAT])
+        mode_config = MODE_TEMPERATURES.get(self._hvac_mode, MODE_TEMPERATURES[HVACMode.HEAT])
         return mode_config["max"]
 
     @property
@@ -234,14 +228,14 @@ class RointeHeater(ClimateEntity):
             if "status" in state and isinstance(state["status"], str):
                 status = state["status"].lower()
                 if status == "comfort":
-                    self._hvac_mode = HVAC_MODE_HEAT
-                    self._preset_mode = PRESET_COMFORT
+                    self._hvac_mode = HVACMode.HEAT
+                    self._preset_mode = PresetMode.COMFORT
                 elif status == "eco":
-                    self._hvac_mode = HVAC_MODE_ECO
-                    self._preset_mode = PRESET_ECO
+                    self._hvac_mode = HVACMode.HEAT
+                    self._preset_mode = PresetMode.ECO
                 elif status == "ice":
-                    self._hvac_mode = HVAC_MODE_OFF
-                    self._preset_mode = PRESET_NONE
+                    self._hvac_mode = HVACMode.OFF
+                    self._preset_mode = PresetMode.NONE
                 else:
                     _LOGGER.warning("Unknown status '%s' for device %s", status, device_id)
             
@@ -272,20 +266,20 @@ class RointeHeater(ClimateEntity):
         
         try:
             updates = {}
-            if hvac_mode == HVAC_MODE_HEAT:
+            if hvac_mode == HVACMode.HEAT:
                 updates = {"status": "comfort", "power": 2}
-                self._preset_mode = PRESET_COMFORT
-            elif hvac_mode == HVAC_MODE_AUTO:
+                self._preset_mode = PresetMode.COMFORT
+            elif hvac_mode == HVACMode.AUTO:
                 # AUTO mode maps to comfort with automatic temperature adjustment
                 updates = {"status": "comfort", "power": 2}
-                self._preset_mode = PRESET_COMFORT
-            elif hvac_mode == HVAC_MODE_HEAT_COOL:
+                self._preset_mode = PresetMode.COMFORT
+            elif hvac_mode == HVACMode.HEAT_COOL:
                 # HEAT_COOL mode maps to eco for energy efficiency
                 updates = {"status": "eco", "power": 2}
-                self._preset_mode = PRESET_ECO
-            elif hvac_mode == HVAC_MODE_OFF:
+                self._preset_mode = PresetMode.ECO
+            elif hvac_mode == HVACMode.OFF:
                 updates = {"status": "ice", "power": 1, "temp": 7}
-                self._preset_mode = PRESET_NONE
+                self._preset_mode = PresetMode.NONE
             
             _LOGGER.debug("Setting HVAC mode %s for device %s: %s", hvac_mode, self.device_id, updates)
             await self.ws.send(self.device_id, updates)
@@ -308,16 +302,16 @@ class RointeHeater(ClimateEntity):
         
         try:
             updates = {}
-            if preset_mode == PRESET_COMFORT:
+            if preset_mode == PresetMode.COMFORT:
                 updates = {"status": "comfort", "power": 2}
-                self._hvac_mode = HVAC_MODE_HEAT
-            elif preset_mode == PRESET_ECO:
+                self._hvac_mode = HVACMode.HEAT
+            elif preset_mode == PresetMode.ECO:
                 updates = {"status": "eco", "power": 2}
-                self._hvac_mode = HVAC_MODE_ECO
-            elif preset_mode == PRESET_NONE:
+                self._hvac_mode = HVACMode.HEAT
+            elif preset_mode == PresetMode.NONE:
                 # For none preset, turn off
                 updates = {"status": "ice", "power": 1, "temp": 7}
-                self._hvac_mode = HVAC_MODE_OFF
+                self._hvac_mode = HVACMode.OFF
             
             _LOGGER.debug("Setting preset mode %s for device %s: %s", preset_mode, self.device_id, updates)
             await self.ws.send(self.device_id, updates)
@@ -345,7 +339,7 @@ class RointeHeater(ClimateEntity):
             raise ValueError(f"Temperature must be a number, got {type(temp)}")
         
         temp = float(temp)
-        mode_config = MODE_TEMPERATURES.get(self._hvac_mode, MODE_TEMPERATURES[HVAC_MODE_HEAT])
+        mode_config = MODE_TEMPERATURES.get(self._hvac_mode, MODE_TEMPERATURES[HVACMode.HEAT])
         min_temp = mode_config["min"]
         max_temp = mode_config["max"]
         
