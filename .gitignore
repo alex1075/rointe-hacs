@@ -4,3 +4,17 @@ __pycache__/
 *.pyc
 .idea/
 .vscode/
+
+# Testing files (for development only)
+test_setup.py
+simple_test.py
+quick_test.py
+docker_test.py
+docker-compose.yml
+TESTING.md
+DEVELOPMENT_TESTING.md
+tests/
+*.log
+
+# Home Assistant development
+.homeassistant/

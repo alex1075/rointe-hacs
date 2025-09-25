@@ -75,10 +75,33 @@ custom_components/rointe/
 
 ## 🛠️ Roadmap
 
+- [x] Enhanced HVAC modes (AUTO, HEAT_COOL)  
+- [x] Preset modes (Comfort, Eco)  
+- [x] Comprehensive error handling  
+- [x] Device information display  
+- [x] Improved configuration flow  
 - [ ] Add support for scheduling (edit/view Rointe weekly programs)  
 - [ ] Add service calls for advanced features (eco, anti-frost, etc.)  
 - [ ] Improve device model discovery (power, nominal wattage, etc.)  
-- [ ] Publish to HACS for easy installation  
+
+---
+
+## 🧪 For Developers
+
+If you're developing or testing this integration:
+
+1. **Clone the repository**
+2. **Set up local testing environment:**
+   - Use Docker: `docker run -d --name ha-test -p 8123:8123 -v /path/to/config:/config ghcr.io/home-assistant/home-assistant:stable`
+   - Copy `custom_components/rointe` to your HA's `custom_components` directory
+   - Restart Home Assistant and configure the integration
+
+3. **Testing checklist:**
+   - Configuration flow works with valid credentials
+   - All HVAC modes function correctly
+   - Temperature setting works within valid ranges
+   - WebSocket updates work in real-time
+   - Error handling works for network issues
 
 ---
 
