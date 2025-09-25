@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 from homeassistant.components.climate import ClimateEntity
 from homeassistant.components.climate.const import (
     HVAC_MODE_OFF,
@@ -14,65 +15,231 @@ _LOGGER = logging.getLogger(__name__)
 
 HVAC_MODES = [HVAC_MODE_OFF, HVAC_MODE_HEAT, HVAC_MODE_ECO]
 
-async def async_setup_entry(hass, entry, async_add_entities):
-    data = hass.data["rointe"][entry.entry_id]
-    ws = data["ws"]
-    devices = data["devices"]
+# Temperature limits for Rointe devices
+MIN_TEMP = 5.0
+MAX_TEMP = 35.0
+DEFAULT_MIN_TEMP = 7.0
+DEFAULT_MAX_TEMP = 30.0
 
-    entities = []
-    for dev in devices:
-        entities.append(RointeHeater(hass, ws, dev["id"], f"{dev['zone']} - {dev['name']}"))
-    async_add_entities(entities)
+class RointeDeviceError(Exception):
+    """Error communicating with Rointe device."""
+    pass
+
+async def async_setup_entry(hass, entry, async_add_entities):
+    """Set up Rointe climate entities."""
+    try:
+        data = hass.data["rointe"][entry.entry_id]
+        ws = data["ws"]
+        devices = data["devices"]
+
+        if not devices:
+            _LOGGER.warning("No devices found during setup")
+            return
+
+        entities = []
+        for dev in devices:
+            try:
+                device_id = dev.get("id")
+                device_name = dev.get("name", "Unknown Device")
+                zone_name = dev.get("zone", "Unknown Zone")
+                
+                if not device_id:
+                    _LOGGER.error("Device missing ID: %s", dev)
+                    continue
+                
+                entity_name = f"{zone_name} - {device_name}"
+                entity = RointeHeater(hass, ws, device_id, entity_name)
+                entities.append(entity)
+                _LOGGER.debug("Created climate entity for device %s: %s", device_id, entity_name)
+                
+            except Exception as e:
+                _LOGGER.error("Error creating entity for device %s: %s", dev, e)
+                continue
+        
+        if entities:
+            async_add_entities(entities, update_before_add=False)
+            _LOGGER.info("Successfully set up %d Rointe climate entities", len(entities))
+        else:
+            _LOGGER.error("No valid climate entities created")
+            
+    except Exception as e:
+        _LOGGER.error("Error setting up Rointe climate entities: %s", e)
+        raise
 
 class RointeHeater(ClimateEntity):
-    def __init__(self, hass, ws, device_id, name):
+    """Representation of a Rointe heater."""
+
+    def __init__(self, hass, ws, device_id: str, name: str):
         self.hass = hass
         self.ws = ws
         self.device_id = device_id
         self._name = name
         self._hvac_mode = HVAC_MODE_OFF
-        self._current_temp = None
-        self._target_temp = None
+        self._current_temp: Optional[float] = None
+        self._target_temp: Optional[float] = None
+        self._available = True
+        self._last_update_time = None
+        
+        # Connect to WebSocket updates
         async_dispatcher_connect(hass, SIGNAL_UPDATE, self._handle_update)
 
     @property
-    def name(self): return self._name
-    @property
-    def supported_features(self): return SUPPORT_TARGET_TEMPERATURE
-    @property
-    def temperature_unit(self): return TEMP_CELSIUS
-    @property
-    def hvac_modes(self): return HVAC_MODES
-    @property
-    def hvac_mode(self): return self._hvac_mode
-    @property
-    def current_temperature(self): return self._current_temp
-    @property
-    def target_temperature(self): return self._target_temp
+    def name(self) -> str:
+        """Return the name of the climate entity."""
+        return self._name
 
-    def _handle_update(self, device_id, state):
-        if device_id != self.device_id: return
-        if "temp" in state: self._current_temp = state["temp"]
-        if "um_max_temp" in state: self._target_temp = state["um_max_temp"]
-        if "status" in state:
-            if state["status"] == "comfort": self._hvac_mode = HVAC_MODE_HEAT
-            elif state["status"] == "eco": self._hvac_mode = HVAC_MODE_ECO
-            elif state["status"] == "ice": self._hvac_mode = HVAC_MODE_OFF
-        self.async_write_ha_state()
+    @property
+    def unique_id(self) -> str:
+        """Return unique ID for this entity."""
+        return f"rointe_{self.device_id}"
 
-    async def async_set_hvac_mode(self, hvac_mode):
-        updates = {}
-        if hvac_mode == HVAC_MODE_HEAT: updates = {"status": "comfort", "power": 2}
-        elif hvac_mode == HVAC_MODE_ECO: updates = {"status": "eco", "power": 2}
-        elif hvac_mode == HVAC_MODE_OFF: updates = {"status": "ice", "power": 1, "temp": 7}
-        await self.ws.send(self.device_id, updates)
-        self._hvac_mode = hvac_mode
-        self.async_write_ha_state()
+    @property
+    def supported_features(self):
+        """Return the list of supported features."""
+        return SUPPORT_TARGET_TEMPERATURE
+
+    @property
+    def temperature_unit(self) -> str:
+        """Return the unit of measurement."""
+        return TEMP_CELSIUS
+
+    @property
+    def hvac_modes(self):
+        """Return the list of available HVAC modes."""
+        return HVAC_MODES
+
+    @property
+    def hvac_mode(self) -> str:
+        """Return current HVAC mode."""
+        return self._hvac_mode
+
+    @property
+    def current_temperature(self) -> Optional[float]:
+        """Return the current temperature."""
+        return self._current_temp
+
+    @property
+    def target_temperature(self) -> Optional[float]:
+        """Return the target temperature."""
+        return self._target_temp
+
+    @property
+    def min_temp(self) -> float:
+        """Return the minimum temperature."""
+        return MIN_TEMP
+
+    @property
+    def max_temp(self) -> float:
+        """Return the maximum temperature."""
+        return MAX_TEMP
+
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self._available
+
+    def _handle_update(self, device_id: str, state: dict):
+        """Handle WebSocket updates."""
+        if device_id != self.device_id:
+            return
+        
+        try:
+            _LOGGER.debug("Received update for device %s: %s", device_id, state)
+            
+            # Update current temperature
+            if "temp" in state and isinstance(state["temp"], (int, float)):
+                temp = float(state["temp"])
+                if MIN_TEMP <= temp <= MAX_TEMP:
+                    self._current_temp = temp
+                else:
+                    _LOGGER.warning("Temperature %s out of range for device %s", temp, device_id)
+            
+            # Update target temperature
+            if "um_max_temp" in state and isinstance(state["um_max_temp"], (int, float)):
+                temp = float(state["um_max_temp"])
+                if MIN_TEMP <= temp <= MAX_TEMP:
+                    self._target_temp = temp
+                else:
+                    _LOGGER.warning("Target temperature %s out of range for device %s", temp, device_id)
+            
+            # Update HVAC mode
+            if "status" in state and isinstance(state["status"], str):
+                status = state["status"].lower()
+                if status == "comfort":
+                    self._hvac_mode = HVAC_MODE_HEAT
+                elif status == "eco":
+                    self._hvac_mode = HVAC_MODE_ECO
+                elif status == "ice":
+                    self._hvac_mode = HVAC_MODE_OFF
+                else:
+                    _LOGGER.warning("Unknown status '%s' for device %s", status, device_id)
+            
+            # Mark as available
+            self._available = True
+            
+            # Update state
+            self.async_write_ha_state()
+            
+        except Exception as e:
+            _LOGGER.error("Error handling update for device %s: %s", device_id, e)
+
+    async def async_set_hvac_mode(self, hvac_mode: str):
+        """Set new HVAC mode."""
+        if hvac_mode not in HVAC_MODES:
+            _LOGGER.error("Invalid HVAC mode: %s", hvac_mode)
+            return
+        
+        try:
+            updates = {}
+            if hvac_mode == HVAC_MODE_HEAT:
+                updates = {"status": "comfort", "power": 2}
+            elif hvac_mode == HVAC_MODE_ECO:
+                updates = {"status": "eco", "power": 2}
+            elif hvac_mode == HVAC_MODE_OFF:
+                updates = {"status": "ice", "power": 1, "temp": 7}
+            
+            _LOGGER.debug("Setting HVAC mode %s for device %s: %s", hvac_mode, self.device_id, updates)
+            await self.ws.send(self.device_id, updates)
+            
+            # Optimistically update local state
+            self._hvac_mode = hvac_mode
+            self.async_write_ha_state()
+            
+        except Exception as e:
+            _LOGGER.error("Error setting HVAC mode %s for device %s: %s", hvac_mode, self.device_id, e)
+            self._available = False
+            self.async_write_ha_state()
+            raise RointeDeviceError(f"Failed to set HVAC mode: {e}")
 
     async def async_set_temperature(self, **kwargs):
+        """Set new target temperature."""
         temp = kwargs.get(ATTR_TEMPERATURE)
-        if temp is not None:
+        if temp is None:
+            _LOGGER.warning("No temperature provided for device %s", self.device_id)
+            return
+        
+        # Validate temperature
+        if not isinstance(temp, (int, float)):
+            _LOGGER.error("Invalid temperature type for device %s: %s", self.device_id, type(temp))
+            raise ValueError(f"Temperature must be a number, got {type(temp)}")
+        
+        temp = float(temp)
+        if temp < MIN_TEMP or temp > MAX_TEMP:
+            _LOGGER.error("Temperature %s out of range [%s, %s] for device %s", 
+                         temp, MIN_TEMP, MAX_TEMP, self.device_id)
+            raise ValueError(f"Temperature must be between {MIN_TEMP} and {MAX_TEMP}")
+        
+        try:
             updates = {"um_max_temp": temp}
+            _LOGGER.debug("Setting temperature %s for device %s", temp, self.device_id)
             await self.ws.send(self.device_id, updates)
+            
+            # Optimistically update local state
             self._target_temp = temp
             self.async_write_ha_state()
+            
+        except Exception as e:
+            _LOGGER.error("Error setting temperature %s for device %s: %s", temp, self.device_id, e)
+            self._available = False
+            self.async_write_ha_state()
+            raise RointeDeviceError(f"Failed to set temperature: {e}")
