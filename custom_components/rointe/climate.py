@@ -5,7 +5,7 @@ from homeassistant.components.climate import (
     ClimateEntityFeature,
     HVACMode,
 )
-from homeassistant.const import TEMP_CELSIUS, ATTR_TEMPERATURE
+from homeassistant.const import ATTR_TEMPERATURE
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from .ws import SIGNAL_UPDATE
 
@@ -111,7 +111,7 @@ class RointeHeater(ClimateEntity):
     @property
     def temperature_unit(self) -> str:
         """Return the unit of measurement."""
-        return TEMP_CELSIUS
+        return "°C"
 
     @property
     def hvac_modes(self):

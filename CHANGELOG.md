@@ -2,6 +2,12 @@
 
 All notable changes to the Rointe Nexa integration will be documented in this file.
 
+## [0.0.5] - 2024-01-XX
+### Fixed
+- Resolved "cannot import name 'temp_celcuis'" error
+- Fixed temperature unit compatibility across Home Assistant versions
+- Updated HACS.json format for proper repository detection
+
 ## [0.0.4] - 2024-01-XX
 ### Simplified
 - Removed redundant preset modes (duplicated HVAC functionality)
