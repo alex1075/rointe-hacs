@@ -1,0 +1,2 @@
+DOMAIN = "rointe"
+PLATFORMS = ["climate"]

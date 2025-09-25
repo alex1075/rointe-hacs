@@ -1,0 +1,6 @@
+{
+    "name": "Rointe Nexa",
+    "render_readme": true,
+    "domains": ["climate"],
+    "homeassistant": "2023.5.0"
+  }  
