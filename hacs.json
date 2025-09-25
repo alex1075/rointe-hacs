@@ -1,6 +1,7 @@
 {
     "name": "Rointe Nexa",
     "content_in_root": false,
+    "filename": "rointe",
     "country": ["ES", "FR", "DE", "GB", "IT", "NL", "PT", "US"],
     "domains": ["climate"],
     "homeassistant": "2023.1.0",
