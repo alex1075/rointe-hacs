@@ -7,13 +7,13 @@ DEVICE_TYPE_TOWEL_RAIL = "towel_rail"
 DEVICE_TYPE_THERMOSTAT = "thermostat"
 DEVICE_TYPE_OVAL_TOWEL = "oval_towel"
 
-# Sensor types
-SENSOR_TYPE_POWER = "power"
-SENSOR_TYPE_ENERGY = "energy"
-SENSOR_TYPE_CURRENT_TEMP = "current_temperature"
+# Sensor types (disabled)
+# SENSOR_TYPE_POWER = "power"
+# SENSOR_TYPE_ENERGY = "energy"
+# SENSOR_TYPE_CURRENT_TEMP = "current_temperature"
 
-# Binary sensor types
-BINARY_SENSOR_TYPE_FIRMWARE_UPDATE = "firmware_update"
+# Binary sensor types (disabled)
+# BINARY_SENSOR_TYPE_FIRMWARE_UPDATE = "firmware_update"
 
 # Device model mappings
 DEVICE_MODELS = {

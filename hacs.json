@@ -2,7 +2,7 @@
     "name": "Rointe Nexa",
     "content_in_root": false,
     "filename": "rointe",
-    "domains": ["climate", "sensor", "binary_sensor"],
+    "domains": ["climate"],
     "country": ["ES", "FR", "DE", "GB", "IT", "NL", "PT", "US"],
     "homeassistant": "2023.1.0",
     "iot_class": "cloud_push",
