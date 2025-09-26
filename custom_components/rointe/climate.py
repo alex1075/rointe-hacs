@@ -40,17 +40,18 @@ class RointeDeviceError(Exception):
 
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up Rointe climate entities."""
+    _LOGGER.info("🌡️ STARTING climate platform setup for entry: %s", entry.entry_id)
     try:
         data = hass.data[DOMAIN][entry.entry_id]
-        ws = data["ws"]
-        devices = data["devices"]
+    ws = data["ws"]
+    devices = data["devices"]
 
         if not devices:
             _LOGGER.warning("No devices found during setup")
             return
 
-        entities = []
-        for dev in devices:
+    entities = []
+    for dev in devices:
             try:
                 device_id = dev.get("id")
                 device_name = dev.get("name", "Unknown Device")
@@ -318,8 +319,8 @@ class RointeHeater(ClimateEntity):
             self._available = True
             
             # Update state
-            self.async_write_ha_state()
-            
+        self.async_write_ha_state()
+
         except Exception as e:
             _LOGGER.error("Error handling update for device %s: %s", self.device_id, e)
 
@@ -330,7 +331,7 @@ class RointeHeater(ClimateEntity):
             return
         
         try:
-            updates = {}
+        updates = {}
             if hvac_mode == HVACMode.HEAT:
                 # Use "comfort" mode for HEAT (matches Rointe website behavior)
                 updates = {"status": "comfort", "power": 2}
@@ -339,12 +340,12 @@ class RointeHeater(ClimateEntity):
                 updates = {"status": "eco", "power": 1}
             
             _LOGGER.info("🔥 HVAC MODE CHANGE: Setting mode %s for device %s: %s", hvac_mode, self.device_id, updates)
-            await self.ws.send(self.device_id, updates)
+        await self.ws.send(self.device_id, updates)
             _LOGGER.info("🔥 HVAC mode command sent successfully!")
             
             # Optimistically update local state
-            self._hvac_mode = hvac_mode
-            self.async_write_ha_state()
+        self._hvac_mode = hvac_mode
+        self.async_write_ha_state()
             _LOGGER.info("🔥 Local HVAC mode updated to %s", self._hvac_mode)
             
         except Exception as e:
