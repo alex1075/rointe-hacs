@@ -12,7 +12,7 @@ from .ws import SIGNAL_UPDATE
 
 _LOGGER = logging.getLogger(__name__)
 
-# Rointe only supports OFF and HEAT modes
+# Rointe supports OFF, ECO, and HEAT modes
 HVAC_MODES = [HVACMode.OFF, HVACMode.HEAT]
 
 # Rointe device states map to HVAC modes
@@ -303,7 +303,8 @@ class RointeHeater(ClimateEntity):
                 # Use "comfort" mode for HEAT (matches Rointe website behavior)
                 updates = {"status": "comfort", "power": 2}
             elif hvac_mode == HVACMode.OFF:
-                updates = {"status": "ice", "power": 1}
+                # For OFF mode, we can use either "ice" or "eco" - let's use "eco" for standby
+                updates = {"status": "eco", "power": 1}
             
             _LOGGER.info("🔥 HVAC MODE CHANGE: Setting mode %s for device %s: %s", hvac_mode, self.device_id, updates)
             await self.ws.send(self.device_id, updates)
