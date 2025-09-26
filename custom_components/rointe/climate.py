@@ -69,6 +69,26 @@ class RointeHeater(ClimateEntity):
 
         async_dispatcher_connect(hass, f"{SIGNAL_UPDATE}_{self.device_id}", self._handle_update)
 
+    @property
+    def current_temperature(self) -> Optional[float]:
+        """Return current temperature."""
+        return self._attr_current_temperature
+
+    @property
+    def target_temperature(self) -> Optional[float]:
+        """Return target temperature."""
+        return self._attr_target_temperature
+
+    @property
+    def min_temp(self) -> float:
+        """Return minimum temperature."""
+        return self._attr_min_temp
+
+    @property
+    def max_temp(self) -> float:
+        """Return maximum temperature."""
+        return self._attr_max_temp
+
     def _handle_update(self, state: dict):
         """Handle updates from WebSocket."""
         _LOGGER.debug("WS update for %s: %s", self.device_id, state)
