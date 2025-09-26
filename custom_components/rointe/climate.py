@@ -72,11 +72,13 @@ class RointeHeater(ClimateEntity):
     @property
     def current_temperature(self) -> Optional[float]:
         """Return current temperature."""
+        _LOGGER.info("🔥 current_temperature called: %s", self._attr_current_temperature)
         return self._attr_current_temperature
 
     @property
     def target_temperature(self) -> Optional[float]:
         """Return target temperature."""
+        _LOGGER.info("🔥 target_temperature called: %s", self._attr_target_temperature)
         return self._attr_target_temperature
 
     @property
@@ -93,9 +95,13 @@ class RointeHeater(ClimateEntity):
         """Handle updates from WebSocket."""
         _LOGGER.debug("WS update for %s: %s", self.device_id, state)
         if "temp" in state:
+            old_temp = self._attr_current_temperature
             self._attr_current_temperature = state["temp"]
+            _LOGGER.info("🌡️ Temperature update: %s -> %s", old_temp, self._attr_current_temperature)
         if "um_max_temp" in state:
+            old_target = self._attr_target_temperature
             self._attr_target_temperature = state["um_max_temp"]
+            _LOGGER.info("🎯 Target temp update: %s -> %s", old_target, self._attr_target_temperature)
         if "status" in state:
             if state["status"] == "comfort":
                 self._attr_hvac_mode = HVACMode.HEAT
