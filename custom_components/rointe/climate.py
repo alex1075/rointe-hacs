@@ -85,13 +85,7 @@ class RointeHeater(ClimateEntity):
     
     # Set entity attributes like the working repo
     _attr_icon = "mdi:radiator"
-    _attr_temperature_unit = UnitOfTemperature.CELSIUS
-    _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
-    _attr_target_temperature_step = 0.5
-    _attr_hvac_modes = HVAC_MODES
-    _attr_preset_modes = PRESET_MODES
     _attr_has_entity_name = True
-    _attr_name = None
 
     def __init__(self, hass, ws, device_id: str, name: str, device_info: Optional[Dict[str, Any]] = None):
         self.hass = hass
@@ -145,15 +139,35 @@ class RointeHeater(ClimateEntity):
         _LOGGER.error("🔥🔥🔥 unique_id property called: returning %s", f"rointe_{self.device_id}")
         return f"rointe_{self.device_id}"
 
-    # supported_features is now defined as _attr_ attribute
+    @property
+    def supported_features(self) -> int:
+        """Return the list of supported features."""
+        _LOGGER.error("🔥🔥🔥 supported_features called: returning %s", ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE)
+        return ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
 
-    # temperature_unit is now defined as _attr_ attribute
+    @property
+    def temperature_unit(self) -> str:
+        """Return the unit of measurement."""
+        _LOGGER.error("🔥🔥🔥 temperature_unit called: returning %s", UnitOfTemperature.CELSIUS)
+        return UnitOfTemperature.CELSIUS
     
-    # target_temperature_step is now defined as _attr_ attribute
+    @property
+    def target_temperature_step(self) -> float:
+        """Return the supported step of target temperature."""
+        _LOGGER.error("🔥🔥🔥 target_temperature_step called: returning %s", 0.5)
+        return 0.5
 
-    # hvac_modes is now defined as _attr_ attribute
+    @property
+    def hvac_modes(self) -> list:
+        """Return the list of available HVAC modes."""
+        _LOGGER.error("🔥🔥🔥 hvac_modes called: returning %s", HVAC_MODES)
+        return HVAC_MODES
     
-    # preset_modes is now defined as _attr_ attribute
+    @property
+    def preset_modes(self) -> list:
+        """Return the list of available preset modes."""
+        _LOGGER.error("🔥🔥🔥 preset_modes called: returning %s", PRESET_MODES)
+        return PRESET_MODES
 
     @property
     def hvac_mode(self) -> str:
