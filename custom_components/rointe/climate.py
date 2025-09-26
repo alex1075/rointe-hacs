@@ -71,6 +71,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 continue
         
         if entities:
+            _LOGGER.error("🔥🔥🔥 About to add %d entities to HA", len(entities))
+            for entity in entities:
+                _LOGGER.error("🔥🔥🔥 Entity details: %s, unique_id: %s, available: %s", 
+                             entity.name, entity.unique_id, entity.available)
             async_add_entities(entities, update_before_add=False)
             _LOGGER.info("Successfully set up %d Rointe climate entities", len(entities))
         else:
@@ -134,12 +138,20 @@ class RointeHeater(ClimateEntity):
         self._attr_name = self._name
         
         _LOGGER.error("🔥🔥🔥 RointeHeater entity created: %s (ID: %s)", self._name, self.device_id)
+        _LOGGER.error("🔥🔥🔥 Entity state: available=%s, hvac_mode=%s, current_temp=%s, target_temp=%s", 
+                     self._available, self._hvac_mode, self._current_temp, self._target_temp)
 
     async def async_added_to_hass(self):
         """Called when entity is added to Home Assistant."""
         _LOGGER.error("🔥🔥🔥 async_added_to_hass called for entity: %s", self._name)
         # Force HA to recognize this as a proper climate entity
         self.schedule_update_ha_state()
+        
+    async def async_update(self):
+        """Update entity state."""
+        _LOGGER.error("🔥🔥🔥 async_update called for entity: %s", self._name)
+        # This method is called by HA to update the entity
+        pass
 
     # Name is now handled by _attr_name = None (entity_name)
 
