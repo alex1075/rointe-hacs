@@ -40,7 +40,7 @@ class RointeDeviceError(Exception):
 
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up Rointe climate entities."""
-    _LOGGER.info("🌡️ STARTING climate platform setup for entry: %s", entry.entry_id)
+    _LOGGER.error("🌡️🌡️🌡️ CLIMATE platform setup STARTING for entry: %s", entry.entry_id)
     try:
         data = hass.data[DOMAIN][entry.entry_id]
     ws = data["ws"]

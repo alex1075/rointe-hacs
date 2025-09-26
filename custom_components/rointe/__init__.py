@@ -21,7 +21,8 @@ async def async_setup(hass: HomeAssistant, config: dict):
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up Rointe from a config entry using dual authentication."""
-    _LOGGER.info("🚀 STARTING Rointe integration setup for entry: %s", entry.entry_id)
+    _LOGGER.error("🚀🚀🚀 Rointe integration setup STARTING for entry: %s", entry.entry_id)
+    _LOGGER.error("🚀🚀🚀 Entry data: %s", entry.data)
     hass.data.setdefault(DOMAIN, {})
     
     try:
