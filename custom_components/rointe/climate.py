@@ -43,15 +43,15 @@ async def async_setup_entry(hass, entry, async_add_entities):
     _LOGGER.error("🌡️🌡️🌡️ CLIMATE platform setup STARTING for entry: %s", entry.entry_id)
     try:
         data = hass.data[DOMAIN][entry.entry_id]
-    ws = data["ws"]
-    devices = data["devices"]
+        ws = data["ws"]
+        devices = data["devices"]
 
         if not devices:
             _LOGGER.warning("No devices found during setup")
             return
 
-    entities = []
-    for dev in devices:
+        entities = []
+        for dev in devices:
             try:
                 device_id = dev.get("id")
                 device_name = dev.get("name", "Unknown Device")
@@ -125,7 +125,7 @@ class RointeHeater(ClimateEntity):
         self._attr_hvac_action = HVACAction.OFF
         
         # For backwards compatibility
-        self._hvac_mode = HVACMode.OFF
+        self._attr_hvac_mode = HVACMode.OFF
         self._current_temp = 20.0
         self._target_temp = 21.0
         self._available = True
@@ -194,7 +194,7 @@ class RointeHeater(ClimateEntity):
     @property
     def hvac_action(self) -> str:
         """Return current HVAC action."""
-        if self._hvac_mode == HVACMode.OFF:
+        if self._attr_hvac_mode == HVACMode.OFF:
             return HVACAction.OFF
         else:
             return HVACAction.HEATING
@@ -202,7 +202,7 @@ class RointeHeater(ClimateEntity):
     @property
     def preset_mode(self) -> Optional[str]:
         """Return current preset mode."""
-        if self._hvac_mode == HVACMode.HEAT:
+        if self._attr_hvac_mode == HVACMode.HEAT:
             # Map to comfort mode for heat
             return PRESET_COMFORT
         return None
@@ -219,13 +219,13 @@ class RointeHeater(ClimateEntity):
     @property
     def min_temp(self) -> float:
         """Return the minimum temperature for current HVAC mode."""
-        mode_config = MODE_TEMPERATURES.get(self._hvac_mode, MODE_TEMPERATURES[HVACMode.HEAT])
+        mode_config = MODE_TEMPERATURES.get(self._attr_hvac_mode, MODE_TEMPERATURES[HVACMode.HEAT])
         return mode_config["min"]
 
     @property
     def max_temp(self) -> float:
         """Return the maximum temperature for current HVAC mode."""
-        mode_config = MODE_TEMPERATURES.get(self._hvac_mode, MODE_TEMPERATURES[HVACMode.HEAT])
+        mode_config = MODE_TEMPERATURES.get(self._attr_hvac_mode, MODE_TEMPERATURES[HVACMode.HEAT])
         return mode_config["max"]
 
     @property
@@ -238,7 +238,7 @@ class RointeHeater(ClimateEntity):
         """Return device information for Home Assistant."""
         info = {
             "identifiers": {("rointe", self.device_id)},
-            "name": self._name,
+            "name": self._attr_name,
             "manufacturer": "Rointe",
             "model": self._device_model or "Rointe Heater",
         }
@@ -333,17 +333,17 @@ class RointeHeater(ClimateEntity):
             if "status" in state and isinstance(state["status"], str):
                 status = state["status"].lower()
                 if status == "comfort":
-                    self._hvac_mode = HVACMode.HEAT
+                    self._attr_hvac_mode = HVACMode.HEAT
                     self._attr_hvac_mode = HVACMode.HEAT
                     self._attr_preset_mode = PRESET_COMFORT
                     self._attr_hvac_action = HVACAction.HEATING
                 elif status == "eco":
-                    self._hvac_mode = HVACMode.HEAT
+                    self._attr_hvac_mode = HVACMode.HEAT
                     self._attr_hvac_mode = HVACMode.HEAT
                     self._attr_preset_mode = PRESET_ECO
                     self._attr_hvac_action = HVACAction.HEATING
                 elif status == "ice":
-                    self._hvac_mode = HVACMode.OFF
+                    self._attr_hvac_mode = HVACMode.OFF
                     self._attr_hvac_mode = HVACMode.OFF
                     self._attr_preset_mode = None
                     self._attr_hvac_action = HVACAction.OFF
@@ -364,7 +364,7 @@ class RointeHeater(ClimateEntity):
             self._available = True
             
             # Update state
-        self.async_write_ha_state()
+            self.async_write_ha_state()
 
         except Exception as e:
             _LOGGER.error("Error handling update for device %s: %s", self.device_id, e)
@@ -376,7 +376,7 @@ class RointeHeater(ClimateEntity):
             return
         
         try:
-        updates = {}
+            updates = {}
             if hvac_mode == HVACMode.HEAT:
                 # Use "comfort" mode for HEAT (matches Rointe website behavior)
                 updates = {"status": "comfort", "power": 2}
@@ -385,11 +385,11 @@ class RointeHeater(ClimateEntity):
                 updates = {"status": "eco", "power": 1}
             
             _LOGGER.info("🔥 HVAC MODE CHANGE: Setting mode %s for device %s: %s", hvac_mode, self.device_id, updates)
-        await self.ws.send(self.device_id, updates)
+            await self.ws.send(self.device_id, updates)
             _LOGGER.info("🔥 HVAC mode command sent successfully!")
             
             # Optimistically update local state and sync to _attr_ for HA
-        self._hvac_mode = hvac_mode
+            self._attr_hvac_mode = hvac_mode
             self._attr_hvac_mode = hvac_mode
             
             # Update preset mode and action based on HVAC mode
@@ -401,12 +401,12 @@ class RointeHeater(ClimateEntity):
                 self._attr_hvac_action = HVACAction.OFF
             
             self.async_write_ha_state()
-            _LOGGER.info("🔥 Local HVAC mode updated to %s", self._hvac_mode)
+            _LOGGER.info("🔥 Local HVAC mode updated to %s", self._attr_hvac_mode)
             
         except Exception as e:
             _LOGGER.error("Error setting HVAC mode %s for device %s: %s", hvac_mode, self.device_id, e)
             self._available = False
-        self.async_write_ha_state()
+            self.async_write_ha_state()
             raise RointeDeviceError(f"Failed to set HVAC mode: {e}")
 
     async def async_turn_on(self):
@@ -435,11 +435,11 @@ class RointeHeater(ClimateEntity):
             # Update local state and sync to _attr_ for HA
             self._attr_preset_mode = preset_mode
             if preset_mode in [PRESET_COMFORT, PRESET_ECO]:
-                self._hvac_mode = HVACMode.HEAT
+                self._attr_hvac_mode = HVACMode.HEAT
                 self._attr_hvac_mode = HVACMode.HEAT
                 self._attr_hvac_action = HVACAction.HEATING
             else:
-                self._hvac_mode = HVACMode.OFF
+                self._attr_hvac_mode = HVACMode.OFF
                 self._attr_hvac_mode = HVACMode.OFF
                 self._attr_hvac_action = HVACAction.OFF
             
