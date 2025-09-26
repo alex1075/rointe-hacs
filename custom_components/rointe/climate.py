@@ -121,10 +121,13 @@ class RointeHeater(ClimateEntity):
         
         # Connect to WebSocket updates
         async_dispatcher_connect(hass, f"{SIGNAL_UPDATE}_{self.device_id}", self._handle_update)
+        
+        _LOGGER.error("🔥🔥🔥 RointeHeater entity created: %s (ID: %s)", self._name, self.device_id)
 
     @property
     def name(self) -> str:
         """Return the name of the climate entity."""
+        _LOGGER.error("🔥🔥🔥 name property called: returning %s", self._name)
         return self._name
 
     @property
