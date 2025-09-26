@@ -62,8 +62,8 @@ class RointeHeater(ClimateEntity):
         self._attr_max_temp = MAX_TEMP
         self._attr_precision = 0.5
         self._attr_hvac_mode = HVACMode.OFF
-        self._attr_current_temperature = 20.0
-        self._attr_target_temperature = 21.0
+        self._attr_current_temperature = 20.0  # Default value so HA shows temp controls
+        self._attr_target_temperature = 21.0   # Default value so HA shows temp controls
         self._attr_preset_mode = PRESET_ECO
         self._attr_hvac_action = HVACAction.OFF
 
@@ -94,8 +94,8 @@ class RointeHeater(ClimateEntity):
         _LOGGER.debug("WS update for %s: %s", self.device_id, state)
         if "temp" in state:
             self._attr_current_temperature = state["temp"]
-        if "consign" in state:
-            self._attr_target_temperature = state["consign"]
+        if "um_max_temp" in state:
+            self._attr_target_temperature = state["um_max_temp"]
         if "status" in state:
             if state["status"] == "comfort":
                 self._attr_hvac_mode = HVACMode.HEAT
