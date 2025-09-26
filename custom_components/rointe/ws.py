@@ -164,11 +164,13 @@ class RointeWebSocket:
             frame = {
                 "t": "d",
                 "d": {
-                    "a": "m",
-                    "b": {"p": f"/devices/{device_id}/data", "d": updates},
+                    "a": "d",
+                    "b": {"p": f"devices/{device_id}/data", "d": updates},
                 },
             }
-            await self.ws.send_str(json.dumps(frame))
+            message = json.dumps(frame)
+            await self.ws.send_str(message)
+            _LOGGER.info("🔥 SENT WebSocket message: %s", message)
             _LOGGER.debug("Sent update to device %s: %s", device_id, updates)
         except Exception as e:
             _LOGGER.error("Failed to send update to device %s: %s", device_id, e)
