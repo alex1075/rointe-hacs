@@ -184,26 +184,16 @@ class RointeHeater(ClimateEntity):
     @property
     def current_temperature(self) -> Optional[float]:
         """Return the current temperature."""
-        # Always return a valid temperature for controls to appear
-        if self._current_temp is None:
-            temp = 20.0  # Default room temperature
-            _LOGGER.debug("🔥 current_temperature called: was None, returning default %s", temp)
-            return temp
-        _LOGGER.debug("🔥 current_temperature called: returning %s", self._current_temp)
-        return self._current_temp
+        # HARDCODED TEST - always return 20.0
+        _LOGGER.error("🔥🔥🔥 current_temperature called: returning HARDCODED 20.0")
+        return 20.0
 
     @property
     def target_temperature(self) -> Optional[float]:
         """Return the target temperature."""
-        # Always return a valid temperature for controls to appear
-        if self._target_temp is None:
-            # Return default based on current mode
-            mode_config = MODE_TEMPERATURES.get(self._hvac_mode, MODE_TEMPERATURES[HVACMode.HEAT])
-            temp = mode_config["default"]
-            _LOGGER.debug("🔥 target_temperature called: was None, returning default %s for mode %s", temp, self._hvac_mode)
-            return temp
-        _LOGGER.debug("🔥 target_temperature called: returning %s", self._target_temp)
-        return self._target_temp
+        # HARDCODED TEST - always return 21.0
+        _LOGGER.error("🔥🔥🔥 target_temperature called: returning HARDCODED 21.0")
+        return 21.0
 
     @property
     def min_temp(self) -> float:
