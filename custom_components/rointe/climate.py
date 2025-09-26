@@ -180,16 +180,14 @@ class RointeHeater(ClimateEntity):
     @property
     def current_temperature(self) -> Optional[float]:
         """Return the current temperature."""
-        # HARDCODED TEST - always return 20.0
-        _LOGGER.error("🔥🔥🔥 current_temperature called: returning HARDCODED 20.0")
-        return 20.0
+        _LOGGER.error("🔥🔥🔥 current_temperature called: returning %s", self._current_temp)
+        return self._current_temp
 
     @property
     def target_temperature(self) -> Optional[float]:
         """Return the target temperature."""
-        # HARDCODED TEST - always return 21.0
-        _LOGGER.error("🔥🔥🔥 target_temperature called: returning HARDCODED 21.0")
-        return 21.0
+        _LOGGER.error("🔥🔥🔥 target_temperature called: returning %s", self._target_temp)
+        return self._target_temp
 
     @property
     def min_temp(self) -> float:
@@ -383,47 +381,28 @@ class RointeHeater(ClimateEntity):
             _LOGGER.error("❌ ERROR setting preset mode %s for device %s: %s", preset_mode, self.device_id, e)
             raise RointeDeviceError(f"Failed to set preset mode: {e}")
 
-
-    async def async_set_temperature(self, **kwargs):
+    async def async_set_temperature(self, **kwargs) -> None:
         """Set new target temperature."""
-        temp = kwargs.get(ATTR_TEMPERATURE)
-        if temp is None:
-            _LOGGER.warning("No temperature provided for device %s", self.device_id)
+        temperature = kwargs.get(ATTR_TEMPERATURE)
+        if temperature is None:
+            return
+            
+        _LOGGER.error("🔥🔥🔥 async_set_temperature called with temperature: %s", temperature)
+        
+        # Validate temperature range
+        if not (self.min_temp <= temperature <= self.max_temp):
+            _LOGGER.warning("Temperature %s outside valid range %s-%s for device %s", 
+                          temperature, self.min_temp, self.max_temp, self.device_id)
             return
         
-        # Validate temperature
-        if not isinstance(temp, (int, float)):
-            _LOGGER.error("Invalid temperature type for device %s: %s", self.device_id, type(temp))
-            raise ValueError(f"Temperature must be a number, got {type(temp)}")
+        # Update target temperature
+        self._target_temp = temperature
         
-        temp = float(temp)
-        mode_config = MODE_TEMPERATURES.get(self._hvac_mode, MODE_TEMPERATURES[HVACMode.HEAT])
-        min_temp = mode_config["min"]
-        max_temp = mode_config["max"]
+        # Send temperature update to device
+        updates = {"um_max_temp": temperature}
+        await self.ws.send(self.device_id, updates)
         
-        if temp < min_temp or temp > max_temp:
-            _LOGGER.error("Temperature %s out of range [%s, %s] for mode %s on device %s", 
-                         temp, min_temp, max_temp, self._hvac_mode, self.device_id)
-            raise ValueError(f"Temperature must be between {min_temp} and {max_temp} for {self._hvac_mode} mode")
+        _LOGGER.error("🔥🔥🔥 Temperature set to %s, current: %s, target: %s", 
+                     temperature, self._current_temp, self._target_temp)
         
-        try:
-            # Use the correct field name for target temperature
-            updates = {"um_max_temp": temp}
-            _LOGGER.info("🔥 TEMPERATURE CHANGE: Setting temperature %s for device %s", temp, self.device_id)
-            _LOGGER.info("🔥 WebSocket status: %s", "Connected" if self.ws and not self.ws.closed else "Disconnected")
-            _LOGGER.info("🔥 Updates to send: %s", updates)
-            
-            await self.ws.send(self.device_id, updates)
-            _LOGGER.info("🔥 Temperature command sent successfully!")
-            
-            # Optimistically update local state
-            self._target_temp = temp
-            self.async_write_ha_state()
-            _LOGGER.info("🔥 Local state updated to %s", self._target_temp)
-            
-        except Exception as e:
-            _LOGGER.error("❌ ERROR setting temperature %s for device %s: %s", temp, self.device_id, e)
-            _LOGGER.error("❌ WebSocket status: %s", "Connected" if self.ws and not self.ws.closed else "Disconnected")
-            self._available = False
-            self.async_write_ha_state()
-            raise RointeDeviceError(f"Failed to set temperature: {e}")
+        self.schedule_update_ha_state()
