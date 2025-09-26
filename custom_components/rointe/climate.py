@@ -83,8 +83,8 @@ class RointeHeater(ClimateEntity):
         self._name = name
         self._device_info = device_info or {}
         self._hvac_mode = HVACMode.OFF
-        self._current_temp: Optional[float] = None
-        self._target_temp: Optional[float] = None
+        self._current_temp: Optional[float] = 20.0  # Default current temperature
+        self._target_temp: Optional[float] = 21.0  # Default target temperature
         self._available = True
         self._last_update_time = None
         
