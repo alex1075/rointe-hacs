@@ -51,10 +51,10 @@ class RointeHeater(ClimateEntity):
         self._attr_hvac_modes = HVAC_MODES
         self._attr_preset_modes = PRESET_MODES
         self._attr_supported_features = (
-            ClimateEntityFeature.TARGET_TEMPERATURE
-            | ClimateEntityFeature.PRESET_MODE
-            | ClimateEntityFeature.TURN_ON
-            | ClimateEntityFeature.TURN_OFF
+            ClimateEntityFeature.TARGET_TEMPERATURE |
+            ClimateEntityFeature.PRESET_MODE |
+            ClimateEntityFeature.TURN_ON |
+            ClimateEntityFeature.TURN_OFF
         )
         self._attr_temperature_unit = UnitOfTemperature.CELSIUS
         self._attr_target_temperature_step = 0.5
@@ -62,46 +62,20 @@ class RointeHeater(ClimateEntity):
         self._attr_max_temp = MAX_TEMP
         self._attr_precision = 0.5
         self._attr_hvac_mode = HVACMode.OFF
-        self._attr_current_temperature = 20.0  # Default value so HA shows temp controls
-        self._attr_target_temperature = 21.0   # Default value so HA shows temp controls
+        self._attr_current_temperature = 20.0
+        self._attr_target_temperature = 21.0
         self._attr_preset_mode = PRESET_ECO
         self._attr_hvac_action = HVACAction.OFF
 
         async_dispatcher_connect(hass, f"{SIGNAL_UPDATE}_{self.device_id}", self._handle_update)
 
-    @property
-    def current_temperature(self) -> Optional[float]:
-        """Return current temperature."""
-        _LOGGER.info("🔥 current_temperature called: %s", self._attr_current_temperature)
-        return self._attr_current_temperature
-
-    @property
-    def target_temperature(self) -> Optional[float]:
-        """Return target temperature."""
-        _LOGGER.info("🔥 target_temperature called: %s", self._attr_target_temperature)
-        return self._attr_target_temperature
-
-    @property
-    def min_temp(self) -> float:
-        """Return minimum temperature."""
-        return self._attr_min_temp
-
-    @property
-    def max_temp(self) -> float:
-        """Return maximum temperature."""
-        return self._attr_max_temp
-
     def _handle_update(self, state: dict):
         """Handle updates from WebSocket."""
         _LOGGER.debug("WS update for %s: %s", self.device_id, state)
         if "temp" in state:
-            old_temp = self._attr_current_temperature
             self._attr_current_temperature = state["temp"]
-            _LOGGER.info("🌡️ Temperature update: %s -> %s", old_temp, self._attr_current_temperature)
         if "um_max_temp" in state:
-            old_target = self._attr_target_temperature
             self._attr_target_temperature = state["um_max_temp"]
-            _LOGGER.info("🎯 Target temp update: %s -> %s", old_target, self._attr_target_temperature)
         if "status" in state:
             if state["status"] == "comfort":
                 self._attr_hvac_mode = HVACMode.HEAT
