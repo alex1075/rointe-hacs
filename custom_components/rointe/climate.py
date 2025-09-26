@@ -4,16 +4,22 @@ from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
     HVACMode,
+    HVACAction,
+    PRESET_ECO,
+    PRESET_COMFORT,
 )
-from homeassistant.const import ATTR_TEMPERATURE
+from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from .const import DOMAIN, DEVICE_MODELS
 from .ws import SIGNAL_UPDATE
 
 _LOGGER = logging.getLogger(__name__)
 
-# Rointe supports OFF, ECO, and HEAT modes
+# Rointe supports OFF and HEAT modes
 HVAC_MODES = [HVACMode.OFF, HVACMode.HEAT]
+
+# Rointe preset modes
+PRESET_MODES = [PRESET_ECO, PRESET_COMFORT]
 
 # Rointe device states map to HVAC modes
 # comfort/eco -> HEAT mode, ice -> OFF mode
@@ -128,16 +134,15 @@ class RointeHeater(ClimateEntity):
     @property
     def supported_features(self):
         """Return the list of supported features."""
-        # Use integer values for better compatibility
-        return 1 | 2 | 4  # TARGET_TEMPERATURE | TURN_ON | TURN_OFF
+        return ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
 
     @property
     def temperature_unit(self) -> str:
         """Return the unit of measurement."""
-        return "°C"
+        return UnitOfTemperature.CELSIUS
     
     @property
-    def precision(self) -> float:
+    def target_temperature_step(self) -> float:
         """Return the precision of temperature values."""
         return 0.5
 
@@ -145,11 +150,32 @@ class RointeHeater(ClimateEntity):
     def hvac_modes(self):
         """Return the list of available HVAC modes."""
         return HVAC_MODES
+    
+    @property
+    def preset_modes(self):
+        """Return the list of available preset modes."""
+        return PRESET_MODES
 
     @property
     def hvac_mode(self) -> str:
         """Return current HVAC mode."""
         return self._hvac_mode
+    
+    @property
+    def hvac_action(self) -> str:
+        """Return current HVAC action."""
+        if self._hvac_mode == HVACMode.OFF:
+            return HVACAction.OFF
+        else:
+            return HVACAction.HEATING
+    
+    @property
+    def preset_mode(self) -> Optional[str]:
+        """Return current preset mode."""
+        if self._hvac_mode == HVACMode.HEAT:
+            # Map to comfort mode for heat
+            return PRESET_COMFORT
+        return None
 
 
     @property
