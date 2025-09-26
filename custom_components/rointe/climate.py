@@ -133,6 +133,7 @@ class RointeHeater(ClimateEntity):
     @property
     def unique_id(self) -> str:
         """Return unique ID for this entity."""
+        _LOGGER.error("🔥🔥🔥 unique_id property called: returning %s", f"rointe_{self.device_id}")
         return f"rointe_{self.device_id}"
 
     @property
