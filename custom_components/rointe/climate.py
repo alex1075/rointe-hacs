@@ -43,15 +43,15 @@ async def async_setup_entry(hass, entry, async_add_entities):
     _LOGGER.error("🌡️🌡️🌡️ CLIMATE platform setup STARTING for entry: %s", entry.entry_id)
     try:
         data = hass.data[DOMAIN][entry.entry_id]
-    ws = data["ws"]
-    devices = data["devices"]
+        ws = data["ws"]
+        devices = data["devices"]
 
         if not devices:
             _LOGGER.warning("No devices found during setup")
             return
 
-    entities = []
-    for dev in devices:
+        entities = []
+        for dev in devices:
             try:
                 device_id = dev.get("id")
                 device_name = dev.get("name", "Unknown Device")
