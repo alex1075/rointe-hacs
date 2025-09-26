@@ -58,12 +58,39 @@ class RointeWebSocket:
             _LOGGER.info("Connected to Rointe Firebase WebSocket")
             _LOGGER.debug("WebSocket URL: %s", url)
             
+            # Send subscription message to start receiving updates
+            await self._subscribe_to_updates()
+            
             # Start listening for messages
             asyncio.create_task(self._listen())
             
         except Exception as e:
             _LOGGER.error("Failed to connect to Rointe WebSocket: %s", e)
             await self._schedule_reconnect()
+
+    async def _subscribe_to_updates(self):
+        """Subscribe to device updates via WebSocket."""
+        try:
+            # Send subscription message to listen for all device updates
+            subscription_msg = {
+                "t": "d",
+                "d": {
+                    "r": 1,
+                    "a": "q",
+                    "b": {
+                        "p": "devices",
+                        "q": {
+                            "orderBy": "$key"
+                        }
+                    }
+                }
+            }
+            
+            await self.ws.send_str(json.dumps(subscription_msg))
+            _LOGGER.info("🔥 Sent subscription message to WebSocket")
+            
+        except Exception as e:
+            _LOGGER.error("Failed to subscribe to WebSocket updates: %s", e)
 
     async def _listen(self):
         """Listen for WebSocket messages."""
