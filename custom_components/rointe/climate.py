@@ -135,7 +135,9 @@ class RointeHeater(ClimateEntity):
     @property
     def supported_features(self):
         """Return the list of supported features."""
-        return ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
+        features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
+        _LOGGER.debug("🔥 supported_features called: returning %s", features)
+        return features
 
     @property
     def temperature_unit(self) -> str:
@@ -182,11 +184,13 @@ class RointeHeater(ClimateEntity):
     @property
     def current_temperature(self) -> Optional[float]:
         """Return the current temperature."""
+        _LOGGER.debug("🔥 current_temperature called: returning %s", self._current_temp)
         return self._current_temp
 
     @property
     def target_temperature(self) -> Optional[float]:
         """Return the target temperature."""
+        _LOGGER.debug("🔥 target_temperature called: returning %s", self._target_temp)
         return self._target_temp
 
     @property
