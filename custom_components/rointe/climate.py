@@ -342,15 +342,21 @@ class RointeHeater(ClimateEntity):
         
         try:
             updates = {"um_max_temp": temp}
-            _LOGGER.debug("Setting temperature %s for device %s", temp, self.device_id)
+            _LOGGER.info("🔥 TEMPERATURE CHANGE: Setting temperature %s for device %s", temp, self.device_id)
+            _LOGGER.info("🔥 WebSocket status: %s", "Connected" if self.ws and not self.ws.closed else "Disconnected")
+            _LOGGER.info("🔥 Updates to send: %s", updates)
+            
             await self.ws.send(self.device_id, updates)
+            _LOGGER.info("🔥 Temperature command sent successfully!")
             
             # Optimistically update local state
             self._target_temp = temp
             self.async_write_ha_state()
+            _LOGGER.info("🔥 Local state updated to %s", self._target_temp)
             
         except Exception as e:
-            _LOGGER.error("Error setting temperature %s for device %s: %s", temp, self.device_id, e)
+            _LOGGER.error("❌ ERROR setting temperature %s for device %s: %s", temp, self.device_id, e)
+            _LOGGER.error("❌ WebSocket status: %s", "Connected" if self.ws and not self.ws.closed else "Disconnected")
             self._available = False
             self.async_write_ha_state()
             raise RointeDeviceError(f"Failed to set temperature: {e}")
