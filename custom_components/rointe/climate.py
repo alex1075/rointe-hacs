@@ -361,6 +361,25 @@ class RointeHeater(ClimateEntity):
         """Turn the entity off."""
         await self.async_set_hvac_mode(HVACMode.OFF)
 
+    async def async_set_preset_mode(self, preset_mode: str):
+        """Set new target preset mode."""
+        _LOGGER.info("🔥 PRESET MODE CHANGE: Setting preset %s for device %s", preset_mode, self.device_id)
+        
+        try:
+            updates = {}
+            if preset_mode == PRESET_COMFORT:
+                updates = {"status": "comfort", "power": 2}
+            elif preset_mode == PRESET_ECO:
+                updates = {"status": "eco", "power": 1}
+            
+            _LOGGER.info("🔥 Preset updates to send: %s", updates)
+            await self.ws.send(self.device_id, updates)
+            _LOGGER.info("🔥 Preset command sent successfully!")
+            
+        except Exception as e:
+            _LOGGER.error("❌ ERROR setting preset mode %s for device %s: %s", preset_mode, self.device_id, e)
+            raise RointeDeviceError(f"Failed to set preset mode: {e}")
+
 
     async def async_set_temperature(self, **kwargs):
         """Set new target temperature."""
