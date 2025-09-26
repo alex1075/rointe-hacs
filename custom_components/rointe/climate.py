@@ -300,8 +300,8 @@ class RointeHeater(ClimateEntity):
         try:
             updates = {}
             if hvac_mode == HVACMode.HEAT:
-                # For heat mode, we can use either "comfort" or "eco" - let's use "eco" as it's more energy efficient
-                updates = {"status": "eco", "power": 2}
+                # Use "comfort" mode for HEAT (matches Rointe website behavior)
+                updates = {"status": "comfort", "power": 2}
             elif hvac_mode == HVACMode.OFF:
                 updates = {"status": "ice", "power": 1}
             
