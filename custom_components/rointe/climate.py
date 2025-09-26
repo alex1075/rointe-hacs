@@ -1,155 +1,117 @@
-"""Climate platform for Rointe heaters with Comfort/Eco/Ice presets."""
-
 import logging
-from typing import Any
-
-from homeassistant.components.climate import ClimateEntity
-from homeassistant.components.climate.const import (
+from typing import Optional, Dict, Any
+from homeassistant.components.climate import (
+    ClimateEntity,
     ClimateEntityFeature,
     HVACMode,
     HVACAction,
+    PRESET_ECO,
+    PRESET_COMFORT,
 )
-from homeassistant.const import UnitOfTemperature, ATTR_TEMPERATURE
-
-from .api import RointeAPI, RointeDeviceError
+from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from .const import DOMAIN
+from .ws import SIGNAL_UPDATE
+from .api import RointeAPI
 
 _LOGGER = logging.getLogger(__name__)
 
-# Preset modes
-PRESET_COMFORT = "comfort"
-PRESET_ECO = "eco"
-PRESET_ICE = "ice"
-PRESET_MODES = [PRESET_COMFORT, PRESET_ECO, PRESET_ICE]
+HVAC_MODES = [HVACMode.OFF, HVACMode.HEAT]
+PRESET_MODES = [PRESET_ECO, PRESET_COMFORT]
 
+MIN_TEMP = 5.0
+MAX_TEMP = 35.0
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    """Set up Rointe climate entities from config entry."""
-    api: RointeAPI = hass.data[DOMAIN][entry.entry_id]["api"]
+    """Set up Rointe climate entities."""
+    data = hass.data[DOMAIN][entry.entry_id]
+    ws = data["ws"]
+    api: RointeAPI = data["api"]
+    devices = data["devices"]
 
-    devices = []
-    for installation in api.installations:
-        for zone in installation["zones"]:
-            for device in zone["devices"]:
-                devices.append(
-                    RointeHeater(api, device, zone["name"])
-                )
+    entities = []
+    for dev in devices:
+        entity = RointeHeater(hass, ws, api, dev["id"], dev.get("name", "Heater"), dev)
+        entities.append(entity)
 
-    if devices:
-        async_add_entities(devices, update_before_add=True)
-        _LOGGER.info("Successfully set up %s Rointe climate entities", len(devices))
+    async_add_entities(entities)
 
 
 class RointeHeater(ClimateEntity):
-    """Representation of a Rointe heater as a HA Climate entity."""
+    """Representation of a Rointe heater."""
 
-    _attr_supported_features = (
-        ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
-    )
-    _attr_temperature_unit = UnitOfTemperature.CELSIUS
-    _attr_hvac_modes = [HVACMode.HEAT, HVACMode.OFF]
-    _attr_preset_modes = PRESET_MODES
-
-    def __init__(self, api: RointeAPI, device: dict, zone_name: str):
-        """Initialize Rointe heater entity."""
+    def __init__(self, hass, ws, api: RointeAPI, device_id: str, name: str, device_info: Optional[Dict[str, Any]]):
+        self.hass = hass
+        self.ws = ws
         self.api = api
-        self.device_id = device["id"]
-        self._name = f"{zone_name} - {device['name']}"
-
-        self._attr_unique_id = self.device_id
-        self._attr_name = self._name
-
-        # Defaults
+        self.device_id = device_id
+        self._attr_name = name
+        self._attr_unique_id = f"rointe_{device_id}"
+        self._attr_icon = "mdi:radiator"
+        self._attr_hvac_modes = HVAC_MODES
+        self._attr_preset_modes = PRESET_MODES
+        self._attr_supported_features = (
+            ClimateEntityFeature.TARGET_TEMPERATURE
+            | ClimateEntityFeature.PRESET_MODE
+            | ClimateEntityFeature.TURN_ON
+            | ClimateEntityFeature.TURN_OFF
+        )
+        self._attr_temperature_unit = UnitOfTemperature.CELSIUS
+        self._attr_target_temperature_step = 0.5
+        self._attr_min_temp = MIN_TEMP
+        self._attr_max_temp = MAX_TEMP
+        self._attr_precision = 0.5
         self._attr_hvac_mode = HVACMode.OFF
+        self._attr_current_temperature = 20.0
+        self._attr_target_temperature = 21.0
+        self._attr_preset_mode = PRESET_ECO
         self._attr_hvac_action = HVACAction.OFF
-        self._attr_preset_mode = PRESET_COMFORT
-        self._attr_current_temperature = None
-        self._attr_target_temperature = None
-        self._attr_min_temp = 7
-        self._attr_max_temp = 30
 
-        _LOGGER.debug("Created climate entity for device %s: %s", self.device_id, self._name)
+        async_dispatcher_connect(hass, f"{SIGNAL_UPDATE}_{self.device_id}", self._handle_update)
 
-    @property
-    def name(self):
-        return self._name
-
-    async def async_update(self) -> None:
-        """Fetch latest state from Rointe API."""
-        try:
-            data = await self.api.get_device_state(self.device_id)
-            if not data:
-                return
-
-            self._attr_current_temperature = data.get("temp")
-            self._attr_target_temperature = data.get("comfort")
-
-            status = data.get("status", "ice")
-            if status == PRESET_COMFORT:
+    def _handle_update(self, state: dict):
+        """Handle updates from WebSocket."""
+        _LOGGER.debug("WS update for %s: %s", self.device_id, state)
+        if "temp" in state:
+            self._attr_current_temperature = state["temp"]
+        if "consign" in state:
+            self._attr_target_temperature = state["consign"]
+        if "status" in state:
+            if state["status"] == "comfort":
                 self._attr_hvac_mode = HVACMode.HEAT
-                self._attr_hvac_action = HVACAction.HEATING
                 self._attr_preset_mode = PRESET_COMFORT
-            elif status == PRESET_ECO:
-                self._attr_hvac_mode = HVACMode.HEAT
                 self._attr_hvac_action = HVACAction.HEATING
+            elif state["status"] == "eco":
+                self._attr_hvac_mode = HVACMode.HEAT
                 self._attr_preset_mode = PRESET_ECO
-            elif status == PRESET_ICE:
+                self._attr_hvac_action = HVACAction.HEATING
+            elif state["status"] == "ice":
                 self._attr_hvac_mode = HVACMode.OFF
+                self._attr_preset_mode = None
                 self._attr_hvac_action = HVACAction.OFF
-                self._attr_preset_mode = PRESET_ICE
+        self.async_write_ha_state()
 
-        except Exception as e:
-            _LOGGER.error("Failed to update device %s: %s", self.device_id, e)
+    async def async_set_hvac_mode(self, hvac_mode: str):
+        await self.api.set_hvac_mode(self.device_id, hvac_mode)
+        self._attr_hvac_mode = hvac_mode
+        self.async_write_ha_state()
 
-    async def async_set_temperature(self, **kwargs: Any) -> None:
-        """Set target temperature (comfort mode only)."""
+    async def async_turn_on(self):
+        await self.async_set_hvac_mode(HVACMode.HEAT)
+
+    async def async_turn_off(self):
+        await self.async_set_hvac_mode(HVACMode.OFF)
+
+    async def async_set_preset_mode(self, preset_mode: str):
+        await self.api.set_preset_mode(self.device_id, preset_mode)
+        self._attr_preset_mode = preset_mode
+        self._attr_hvac_mode = HVACMode.HEAT
+        self.async_write_ha_state()
+
+    async def async_set_temperature(self, **kwargs):
         temperature = kwargs.get(ATTR_TEMPERATURE)
         if temperature is None:
             return
-
-        try:
-            updates = {"comfort": temperature}
-            _LOGGER.debug("Setting comfort temperature %s for device %s", temperature, self.device_id)
-            await self.api.set_device_state(self.device_id, updates)
-
-            self._attr_target_temperature = temperature
-            self.async_write_ha_state()
-        except Exception as e:
-            _LOGGER.error("Failed to set temperature for device %s: %s", self.device_id, e)
-            raise RointeDeviceError(f"Failed to set temperature: {e}")
-
-    async def async_set_hvac_mode(self, hvac_mode: str) -> None:
-        """Set HVAC mode (maps to presets)."""
-        if hvac_mode == HVACMode.OFF:
-            await self.async_set_preset_mode(PRESET_ICE)
-        elif hvac_mode == HVACMode.HEAT:
-            await self.async_set_preset_mode(PRESET_COMFORT)
-
-    async def async_set_preset_mode(self, preset_mode: str) -> None:
-        """Set preset mode (comfort/eco/ice)."""
-        if preset_mode not in PRESET_MODES:
-            _LOGGER.error("Invalid preset mode: %s", preset_mode)
-            return
-
-        try:
-            updates = {"status": preset_mode}
-            _LOGGER.debug("Sending preset update for %s: %s", self.device_id, updates)
-            await self.api.set_device_state(self.device_id, updates)
-
-            self._attr_preset_mode = preset_mode
-
-            if preset_mode == PRESET_COMFORT:
-                self._attr_hvac_mode = HVACMode.HEAT
-                self._attr_hvac_action = HVACAction.HEATING
-            elif preset_mode == PRESET_ECO:
-                self._attr_hvac_mode = HVACMode.HEAT
-                self._attr_hvac_action = HVACAction.HEATING
-            elif preset_mode == PRESET_ICE:
-                self._attr_hvac_mode = HVACMode.OFF
-                self._attr_hvac_action = HVACAction.OFF
-
-            self.async_write_ha_state()
-
-        except Exception as e:
-            _LOGGER.error("Error setting preset mode %s for device %s: %s", preset_mode, self.device_id, e)
-            raise RointeDeviceError(f"Failed to set preset mode: {e}")
+        await self.api.set_temperature(self.device_id, temperature)
+        self._attr_target_temperature = temperature
+        self.async_write_ha_state()
