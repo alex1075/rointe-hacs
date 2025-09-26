@@ -128,7 +128,7 @@ class RointeHeater(ClimateEntity):
     @property
     def supported_features(self):
         """Return the list of supported features."""
-        return ClimateEntityFeature.TARGET_TEMPERATURE
+        return ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF
 
     @property
     def temperature_unit(self) -> str:
@@ -320,6 +320,14 @@ class RointeHeater(ClimateEntity):
             self._available = False
             self.async_write_ha_state()
             raise RointeDeviceError(f"Failed to set HVAC mode: {e}")
+
+    async def async_turn_on(self):
+        """Turn the entity on."""
+        await self.async_set_hvac_mode(HVACMode.HEAT)
+
+    async def async_turn_off(self):
+        """Turn the entity off."""
+        await self.async_set_hvac_mode(HVACMode.OFF)
 
 
     async def async_set_temperature(self, **kwargs):
