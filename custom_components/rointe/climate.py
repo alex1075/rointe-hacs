@@ -99,6 +99,10 @@ class RointeHeater(ClimateEntity):
         self._available = True
         self._last_update_time = None
         
+        # Force entity to be available and properly initialized
+        self._attr_available = True
+        self._attr_should_poll = False
+        
         # Device information
         self._device_model: Optional[str] = self._device_info.get("model")
         self._device_power: Optional[int] = self._device_info.get("power")
@@ -130,6 +134,12 @@ class RointeHeater(ClimateEntity):
         self._attr_name = self._name
         
         _LOGGER.error("🔥🔥🔥 RointeHeater entity created: %s (ID: %s)", self._name, self.device_id)
+
+    async def async_added_to_hass(self):
+        """Called when entity is added to Home Assistant."""
+        _LOGGER.error("🔥🔥🔥 async_added_to_hass called for entity: %s", self._name)
+        # Force HA to recognize this as a proper climate entity
+        self.schedule_update_ha_state()
 
     # Name is now handled by _attr_name = None (entity_name)
 
@@ -202,6 +212,12 @@ class RointeHeater(ClimateEntity):
         """Return the target temperature."""
         _LOGGER.error("🔥🔥🔥 target_temperature called: returning %s", self._target_temp)
         return self._target_temp
+
+    @property
+    def name(self) -> str:
+        """Return the name of the entity."""
+        _LOGGER.error("🔥🔥🔥 name property called: returning %s", self._name)
+        return self._name
 
     @property
     def min_temp(self) -> float:
