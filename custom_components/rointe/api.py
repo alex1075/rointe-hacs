@@ -179,10 +179,11 @@ class RointeAPI:
                                         continue
                                     
                                     device_name = device.get("name", device_id)
-                                    device_info = {
-                                        "id": device_id,
-                                        "name": device_name,
-                                        "zone": zone_name,
+                            device_info = {
+                                "id": device_id,
+                                "name": device_name,
+                                "zone": zone_name,
+                                "zone_id": zone_id,
                                         "model": device.get("model"),
                                         "power": device.get("power"),
                                         "version": device.get("version"),

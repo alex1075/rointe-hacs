@@ -161,11 +161,16 @@ class RointeWebSocket:
             raise Exception("WebSocket not connected")
         
         try:
+            # Generate a request ID (incrementing counter)
+            request_id = getattr(self, '_request_counter', 0) + 1
+            self._request_counter = request_id
+            
             frame = {
                 "t": "d",
                 "d": {
-                    "a": "d",
-                    "b": {"p": f"devices/{device_id}/data", "d": updates},
+                    "r": request_id,
+                    "a": "m",
+                    "b": {"p": f"/devices/{device_id}/data", "d": updates},
                 },
             }
             message = json.dumps(frame)

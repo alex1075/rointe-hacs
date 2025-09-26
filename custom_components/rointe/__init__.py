@@ -90,6 +90,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             _LOGGER.error("Unexpected error during device discovery: %s", e)
             devices = []
         
+        # Create device-to-zone mapping for WebSocket
+        device_zone_mapping = {}
+        for device in devices:
+            device_id = device.get("id")
+            zone_id = device.get("zone_id")
+            if zone_id:
+                device_zone_mapping[device_id] = zone_id
+            else:
+                _LOGGER.warning("No zone_id found for device %s", device_id)
+        
+        # Store device-zone mapping in WebSocket
+        if ws:
+            ws._device_zone_mapping = device_zone_mapping
+        
         # Store data
         hass.data[DOMAIN][entry.entry_id] = {
             "auth": auth, 

@@ -341,6 +341,7 @@ class RointeHeater(ClimateEntity):
             raise ValueError(f"Temperature must be between {min_temp} and {max_temp} for {self._hvac_mode} mode")
         
         try:
+            # Use the correct field name for target temperature
             updates = {"um_max_temp": temp}
             _LOGGER.info("🔥 TEMPERATURE CHANGE: Setting temperature %s for device %s", temp, self.device_id)
             _LOGGER.info("🔥 WebSocket status: %s", "Connected" if self.ws and not self.ws.closed else "Disconnected")
