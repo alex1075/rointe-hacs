@@ -89,13 +89,16 @@ class RointeWebSocket:
         """Handle incoming WebSocket message."""
         try:
             data = json.loads(data)
+            _LOGGER.info("🔥 WebSocket message received: %s", data)
             if "d" in data and isinstance(data["d"], dict):
                 payload = data["d"]
                 if "b" in payload and "p" in payload["b"]:
                     path = payload["b"]["p"]
+                    _LOGGER.info("🔥 WebSocket path: %s", path)
                     if path.startswith("devices/") and "/data" in path:
                         device_id = path.split("/")[1]
                         state = payload["b"].get("d", {})
+                        _LOGGER.info("🔥 Sending update to device %s: %s", device_id, state)
                         async_dispatcher_send(self.hass, f"{SIGNAL_UPDATE}_{device_id}", state)
                         _LOGGER.debug("Received update for device %s: %s", device_id, state)
         except json.JSONDecodeError as e:

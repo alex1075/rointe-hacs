@@ -71,11 +71,15 @@ class RointeHeater(ClimateEntity):
 
     def _handle_update(self, state: dict):
         """Handle updates from WebSocket."""
-        _LOGGER.debug("WS update for %s: %s", self.device_id, state)
+        _LOGGER.info("🔥 Climate entity received update for %s: %s", self.device_id, state)
         if "temp" in state:
+            old_temp = self._attr_current_temperature
             self._attr_current_temperature = state["temp"]
+            _LOGGER.info("🌡️ Temperature update: %s -> %s", old_temp, self._attr_current_temperature)
         if "um_max_temp" in state:
+            old_target = self._attr_target_temperature
             self._attr_target_temperature = state["um_max_temp"]
+            _LOGGER.info("🎯 Target temp update: %s -> %s", old_target, self._attr_target_temperature)
         if "status" in state:
             if state["status"] == "comfort":
                 self._attr_hvac_mode = HVACMode.HEAT
