@@ -62,6 +62,7 @@ class RointeHeater(ClimateEntity):
         self._attr_max_temp = MAX_TEMP
         self._attr_precision = 0.5
         self._attr_hvac_mode = HVACMode.OFF
+        # Set default values so temperature controls appear
         self._attr_current_temperature = 20.0
         self._attr_target_temperature = 21.0
         self._attr_preset_mode = PRESET_ECO
