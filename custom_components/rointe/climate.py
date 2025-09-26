@@ -177,6 +177,36 @@ class RointeHeater(ClimateEntity):
         return HVACAction.HEATING
 
     @property
+    def current_temperature(self) -> Optional[float]:
+        """Return current temperature."""
+        return self._attr_current_temperature
+
+    @property
+    def target_temperature(self) -> Optional[float]:
+        """Return target temperature."""
+        return self._attr_target_temperature
+
+    @property
+    def min_temp(self) -> float:
+        """Return minimum temperature."""
+        return self._attr_min_temp
+
+    @property
+    def max_temp(self) -> float:
+        """Return maximum temperature."""
+        return self._attr_max_temp
+
+    @property
+    def hvac_mode(self) -> str:
+        """Return current HVAC mode."""
+        return self._attr_hvac_mode
+
+    @property
+    def preset_mode(self) -> Optional[str]:
+        """Return current preset mode."""
+        return self._attr_preset_mode
+
+    @property
     def device_info(self) -> Dict[str, Any]:
         info = {
             "identifiers": {("rointe", self.device_id)},
