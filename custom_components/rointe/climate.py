@@ -128,12 +128,18 @@ class RointeHeater(ClimateEntity):
     @property
     def supported_features(self):
         """Return the list of supported features."""
-        return ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF
+        # Use integer values for better compatibility
+        return 1 | 2 | 4  # TARGET_TEMPERATURE | TURN_ON | TURN_OFF
 
     @property
     def temperature_unit(self) -> str:
         """Return the unit of measurement."""
         return "°C"
+    
+    @property
+    def precision(self) -> float:
+        """Return the precision of temperature values."""
+        return 0.5
 
     @property
     def hvac_modes(self):
