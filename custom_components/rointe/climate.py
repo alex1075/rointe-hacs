@@ -82,6 +82,16 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 class RointeHeater(ClimateEntity):
     """Representation of a Rointe heater with enhanced features."""
+    
+    # Set entity attributes like the working repo
+    _attr_icon = "mdi:radiator"
+    _attr_temperature_unit = UnitOfTemperature.CELSIUS
+    _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
+    _attr_target_temperature_step = 0.5
+    _attr_hvac_modes = HVAC_MODES
+    _attr_preset_modes = PRESET_MODES
+    _attr_has_entity_name = True
+    _attr_name = None
 
     def __init__(self, hass, ws, device_id: str, name: str, device_info: Optional[Dict[str, Any]] = None):
         self.hass = hass
@@ -136,32 +146,15 @@ class RointeHeater(ClimateEntity):
         _LOGGER.error("🔥🔥🔥 unique_id property called: returning %s", f"rointe_{self.device_id}")
         return f"rointe_{self.device_id}"
 
-    @property
-    def supported_features(self):
-        """Return the list of supported features."""
-        features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
-        _LOGGER.debug("🔥 supported_features called: returning %s", features)
-        return features
+    # supported_features is now defined as _attr_ attribute
 
-    @property
-    def temperature_unit(self) -> str:
-        """Return the unit of measurement."""
-        return UnitOfTemperature.CELSIUS
+    # temperature_unit is now defined as _attr_ attribute
     
-    @property
-    def target_temperature_step(self) -> float:
-        """Return the precision of temperature values."""
-        return 0.5
+    # target_temperature_step is now defined as _attr_ attribute
 
-    @property
-    def hvac_modes(self):
-        """Return the list of available HVAC modes."""
-        return HVAC_MODES
+    # hvac_modes is now defined as _attr_ attribute
     
-    @property
-    def preset_modes(self):
-        """Return the list of available preset modes."""
-        return PRESET_MODES
+    # preset_modes is now defined as _attr_ attribute
 
     @property
     def hvac_mode(self) -> str:
