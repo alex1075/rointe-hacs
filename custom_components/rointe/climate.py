@@ -86,26 +86,50 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 class RointeHeater(ClimateEntity):
     """Representation of a Rointe heater with enhanced features."""
-    
-    # Set entity attributes like the working repo
-    _attr_icon = "mdi:radiator"
-    _attr_has_entity_name = True
 
     def __init__(self, hass, ws, device_id: str, name: str, device_info: Optional[Dict[str, Any]] = None):
+        """Initialize the Rointe heater entity."""
         self.hass = hass
         self.ws = ws
         self.device_id = device_id
-        self._name = name
         self._device_info = device_info or {}
+        
+        # Set entity attributes directly - this is the modern HA way
+        self._attr_name = name
+        self._attr_unique_id = f"rointe_{device_id}"
+        self._attr_icon = "mdi:radiator"
+        self._attr_has_entity_name = True
+        self._attr_should_poll = False
+        self._attr_available = True
+        
+        # Climate-specific attributes - CRITICAL for temperature controls
+        self._attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT]
+        self._attr_preset_modes = [PRESET_ECO, PRESET_COMFORT]
+        self._attr_supported_features = (
+            ClimateEntityFeature.TARGET_TEMPERATURE | 
+            ClimateEntityFeature.PRESET_MODE |
+            ClimateEntityFeature.TURN_ON |
+            ClimateEntityFeature.TURN_OFF
+        )
+        self._attr_temperature_unit = UnitOfTemperature.CELSIUS
+        self._attr_target_temperature_step = 0.5
+        self._attr_min_temp = 7.0
+        self._attr_max_temp = 30.0
+        self._attr_precision = 0.5
+        
+        # Set current state - CRITICAL for temperature controls to appear
+        self._attr_hvac_mode = HVACMode.OFF
+        self._attr_current_temperature = 20.0
+        self._attr_target_temperature = 21.0
+        self._attr_preset_mode = PRESET_ECO
+        self._attr_hvac_action = HVACAction.OFF
+        
+        # For backwards compatibility
         self._hvac_mode = HVACMode.OFF
-        self._current_temp: Optional[float] = 20.0  # Default current temperature
-        self._target_temp: Optional[float] = 21.0  # Default target temperature
+        self._current_temp = 20.0
+        self._target_temp = 21.0
         self._available = True
         self._last_update_time = None
-        
-        # Force entity to be available and properly initialized
-        self._attr_available = True
-        self._attr_should_poll = False
         
         # Device information
         self._device_model: Optional[str] = self._device_info.get("model")
@@ -134,12 +158,11 @@ class RointeHeater(ClimateEntity):
         # Connect to WebSocket updates
         async_dispatcher_connect(hass, f"{SIGNAL_UPDATE}_{self.device_id}", self._handle_update)
         
-        # Set the entity name
-        self._attr_name = self._name
-        
-        _LOGGER.error("🔥🔥🔥 RointeHeater entity created: %s (ID: %s)", self._name, self.device_id)
-        _LOGGER.error("🔥🔥🔥 Entity state: available=%s, hvac_mode=%s, current_temp=%s, target_temp=%s", 
-                     self._available, self._hvac_mode, self._current_temp, self._target_temp)
+        _LOGGER.error("🔥🔥🔥 RointeHeater entity created with _attr_ attributes: %s (ID: %s)", name, self.device_id)
+        _LOGGER.error("🔥🔥🔥 Entity attributes: hvac_modes=%s, supported_features=%s, temp_unit=%s", 
+                     self._attr_hvac_modes, self._attr_supported_features, self._attr_temperature_unit)
+        _LOGGER.error("🔥🔥🔥 Current state: hvac_mode=%s, current_temp=%s, target_temp=%s", 
+                     self._attr_hvac_mode, self._attr_current_temperature, self._attr_target_temperature)
 
     async def async_added_to_hass(self):
         """Called when entity is added to Home Assistant."""
@@ -161,35 +184,7 @@ class RointeHeater(ClimateEntity):
         _LOGGER.error("🔥🔥🔥 unique_id property called: returning %s", f"rointe_{self.device_id}")
         return f"rointe_{self.device_id}"
 
-    @property
-    def supported_features(self) -> int:
-        """Return the list of supported features."""
-        _LOGGER.error("🔥🔥🔥 supported_features called: returning %s", ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE)
-        return ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
-
-    @property
-    def temperature_unit(self) -> str:
-        """Return the unit of measurement."""
-        _LOGGER.error("🔥🔥🔥 temperature_unit called: returning %s", UnitOfTemperature.CELSIUS)
-        return UnitOfTemperature.CELSIUS
-    
-    @property
-    def target_temperature_step(self) -> float:
-        """Return the supported step of target temperature."""
-        _LOGGER.error("🔥🔥🔥 target_temperature_step called: returning %s", 0.5)
-        return 0.5
-
-    @property
-    def hvac_modes(self) -> list:
-        """Return the list of available HVAC modes."""
-        _LOGGER.error("🔥🔥🔥 hvac_modes called: returning %s", HVAC_MODES)
-        return HVAC_MODES
-    
-    @property
-    def preset_modes(self) -> list:
-        """Return the list of available preset modes."""
-        _LOGGER.error("🔥🔥🔥 preset_modes called: returning %s", PRESET_MODES)
-        return PRESET_MODES
+    # Properties are now handled by _attr_ attributes for better HA compatibility
 
     @property
     def hvac_mode(self) -> str:
@@ -213,17 +208,7 @@ class RointeHeater(ClimateEntity):
         return None
 
 
-    @property
-    def current_temperature(self) -> Optional[float]:
-        """Return the current temperature."""
-        _LOGGER.error("🔥🔥🔥 current_temperature called: returning %s", self._current_temp)
-        return self._current_temp
-
-    @property
-    def target_temperature(self) -> Optional[float]:
-        """Return the target temperature."""
-        _LOGGER.error("🔥🔥🔥 target_temperature called: returning %s", self._target_temp)
-        return self._target_temp
+    # current_temperature and target_temperature are now handled by _attr_ attributes
 
     @property
     def name(self) -> str:
