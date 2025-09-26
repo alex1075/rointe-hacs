@@ -300,16 +300,19 @@ class RointeHeater(ClimateEntity):
         try:
             updates = {}
             if hvac_mode == HVACMode.HEAT:
-                updates = {"status": "comfort", "power": 2}
+                # For heat mode, we can use either "comfort" or "eco" - let's use "eco" as it's more energy efficient
+                updates = {"status": "eco", "power": 2}
             elif hvac_mode == HVACMode.OFF:
-                updates = {"status": "ice", "power": 1, "temp": 7}
+                updates = {"status": "ice", "power": 1}
             
-            _LOGGER.debug("Setting HVAC mode %s for device %s: %s", hvac_mode, self.device_id, updates)
+            _LOGGER.info("🔥 HVAC MODE CHANGE: Setting mode %s for device %s: %s", hvac_mode, self.device_id, updates)
             await self.ws.send(self.device_id, updates)
+            _LOGGER.info("🔥 HVAC mode command sent successfully!")
             
             # Optimistically update local state
             self._hvac_mode = hvac_mode
             self.async_write_ha_state()
+            _LOGGER.info("🔥 Local HVAC mode updated to %s", self._hvac_mode)
             
         except Exception as e:
             _LOGGER.error("Error setting HVAC mode %s for device %s: %s", hvac_mode, self.device_id, e)
