@@ -1,5 +1,7 @@
+from homeassistant.const import Platform
+
 DOMAIN = "rointe"
-PLATFORMS = ["climate", "sensor", "binary_sensor"]
+PLATFORMS = [Platform.CLIMATE, Platform.SWITCH]
 
 # Device types
 DEVICE_TYPE_RADIATOR = "radiator"

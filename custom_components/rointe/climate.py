@@ -4,6 +4,7 @@ from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
     HVACMode,
+    ATTR_HVAC_MODE,
 )
 
 # Define preset modes
@@ -15,14 +16,13 @@ except ImportError:
 
 PRESET_ICE = "ice"
 
-# Rointe mode mappings - all settable modes
+# Rointe mode mappings
 ROINTE_MODES = {
-    "comfort": {"status": "comfort", "power": 2},           # Comfort temp (19°C default)
-    "eco": {"status": "eco", "power": 2},                   # Economy mode (15°C default)
-    "ice": {"status": "ice", "power": 2, "temp": 7},        # Active frost protection (7°C)
+    "comfort": {"status": "comfort", "power": 2},
+    "eco": {"status": "eco", "power": 2},
+    "ice": {"status": "ice", "power": 2, "temp": 7},
 }
 
-# Map HA presets to Rointe modes
 PRESET_TO_ROINTE = {
     PRESET_COMFORT: "comfort",
     PRESET_ECO: "eco",
@@ -33,7 +33,7 @@ ROINTE_TO_PRESET = {
     "comfort": PRESET_COMFORT,
     "eco": PRESET_ECO,
     "ice": PRESET_ICE,
-    "none": PRESET_COMFORT,  # Map manual mode to comfort for display
+    "none": PRESET_COMFORT,
 }
 
 from homeassistant.const import ATTR_TEMPERATURE
@@ -109,8 +109,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
 class RointeHeater(ClimateEntity):
     """Representation of a Rointe heater with preset modes."""
 
-    _enable_turn_on_off_backwards_compatibility = False
-
     def __init__(self, hass, ws, api, device_id: str, name: str, device_info: Optional[Dict[str, Any]] = None):
         self.hass = hass
         self.ws = ws
@@ -124,6 +122,7 @@ class RointeHeater(ClimateEntity):
         self._target_temp: Optional[float] = None
         self._available = True
         self._last_update_time = None
+        self._schedule_mode = False  # mode: 0=manual, 1=schedule
         
         # Device information
         self._device_model: Optional[str] = self._device_info.get("model")
@@ -158,7 +157,7 @@ class RointeHeater(ClimateEntity):
     @property
     def supported_features(self):
         """Return the list of supported features."""
-        return ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE | ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF
+        return ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
 
     @property
     def preset_modes(self):
@@ -248,6 +247,7 @@ class RointeHeater(ClimateEntity):
             "device_id": self.device_id,
             "device_category": self._device_category,
             "online": self._online,
+            "schedule_mode": "Schedule" if self._schedule_mode else "Manual",
         }
         
         if self._device_power:
@@ -268,6 +268,10 @@ class RointeHeater(ClimateEntity):
             self._device_status = state.get("deviceStatus", self._device_status)
             self._online = state.get("online", self._online)
             self._last_seen = state.get("lastSeen", self._last_seen)
+            
+            # Update schedule mode
+            if "mode" in state:
+                self._schedule_mode = (state["mode"] == 1)
             
             # Update current temperature
             if "temp" in state and isinstance(state["temp"], (int, float)):
@@ -326,25 +330,6 @@ class RointeHeater(ClimateEntity):
             self._available = False
             self.async_write_ha_state()
             raise RointeDeviceError(f"Failed to set preset mode: {e}")
-
-    def turn_on(self) -> None:
-        """Turn on the heater."""
-        # Use async wrapper
-        self.hass.async_create_task(self.async_turn_on())
-
-    def turn_off(self) -> None:
-        """Turn off the heater."""
-        # Use async wrapper
-        self.hass.async_create_task(self.async_turn_off())
-
-    async def async_turn_on(self):
-        """Turn on the heater (async)."""
-        # Use current preset or default to comfort
-        await self.async_set_hvac_mode(HVACMode.HEAT)
-
-    async def async_turn_off(self):
-        """Turn off the heater (async)."""
-        await self.async_set_hvac_mode(HVACMode.OFF)
 
     async def async_set_hvac_mode(self, hvac_mode: str):
         """Set new HVAC mode."""

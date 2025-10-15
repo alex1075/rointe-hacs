@@ -3,10 +3,13 @@ Rointe Integration Entry Point
 """
 
 import logging
-from homeassistant.core import HomeAssistant
+import voluptuous as vol
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.exceptions import ConfigEntryNotReady
-from .const import DOMAIN, PLATFORMS
+from homeassistant.const import Platform
+import homeassistant.helpers.config_validation as cv
+
+from .const import DOMAIN, PLATFORMS  # Import PLATFORMS from const
 from .auth import RointeAuth, RointeRestAuthError, RointeFirebaseAuthError
 from .ws import RointeWebSocket
 from .api import RointeAPI, RointeAPIError, RointeNetworkError
@@ -94,6 +97,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     # Forward setups to platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     _LOGGER.info("Rointe integration setup completed successfully")
+
+    # Remove all service registration code
     return True
 
 
@@ -114,4 +119,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
                     _LOGGER.error("Error closing %s: %s", key, e)
 
         _LOGGER.info("Rointe integration unloaded successfully")
+
+    # Remove service cleanup code
     return unload_ok
