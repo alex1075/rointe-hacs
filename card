@@ -1,0 +1,12 @@
+type: thermostat
+entity: climate.living_room_radiator
+features:
+  - type: climate-hvac-modes
+    hvac_modes:
+      - 'off'
+      - heat
+  - type: climate-preset-modes
+    preset_modes:
+      - comfort
+      - eco
+      - ice
