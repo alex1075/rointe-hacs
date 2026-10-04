@@ -1,4 +1,4 @@
-"""Support for Rointe binary sensors (firmware updates)."""
+"""Support for Rointe binary sensors (firmware updates, connectivity)."""
 import logging
 from typing import Optional, Dict, Any
 
@@ -14,6 +14,7 @@ from homeassistant.helpers.entity import Entity
 from .const import (
     DOMAIN,
     BINARY_SENSOR_TYPE_FIRMWARE_UPDATE,
+    BINARY_SENSOR_TYPE_CONNECTED,
 )
 from .ws import SIGNAL_UPDATE
 
@@ -26,6 +27,11 @@ BINARY_SENSOR_TYPES = {
         name="Firmware Update Available",
         device_class=BinarySensorDeviceClass.UPDATE,
         icon="mdi:update",
+    ),
+    BINARY_SENSOR_TYPE_CONNECTED: BinarySensorEntityDescription(
+        key=BINARY_SENSOR_TYPE_CONNECTED,
+        name="Connected",
+        device_class=BinarySensorDeviceClass.CONNECTIVITY,
     ),
 }
 
@@ -90,7 +96,8 @@ class RointeBinarySensor(BinarySensorEntity):
         self._device_version = device_info.get("version", "Unknown")
         
         # Sensor state
-        self._state = False
+        # Connectivity defaults to on until Firebase reports is_alive
+        self._state = sensor_type == BINARY_SENSOR_TYPE_CONNECTED
         self._last_update = None
         self._update_info = {}
         
@@ -161,6 +168,13 @@ class RointeBinarySensor(BinarySensorEntity):
                             self._update_info = device_status.get("updateInfo", {})
                 
                 self._last_update = data.get("timestamp")
+            
+            elif self._sensor_type == BINARY_SENSOR_TYPE_CONNECTED:
+                # Only react to messages carrying the is_alive field
+                if "is_alive" not in data:
+                    return
+                self._state = bool(data.get("is_alive"))
+                self._last_update = data.get("timestamp", self._last_update)
             
             self.async_write_ha_state()
             

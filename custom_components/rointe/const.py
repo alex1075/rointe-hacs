@@ -1,7 +1,7 @@
 from homeassistant.const import Platform
 
 DOMAIN = "rointe"
-PLATFORMS = [Platform.CLIMATE, Platform.SWITCH]
+PLATFORMS = [Platform.CLIMATE, Platform.SWITCH, Platform.BINARY_SENSOR]
 
 # Device types
 DEVICE_TYPE_RADIATOR = "radiator"
@@ -16,6 +16,7 @@ SENSOR_TYPE_CURRENT_TEMP = "current_temperature"
 
 # Binary sensor types
 BINARY_SENSOR_TYPE_FIRMWARE_UPDATE = "firmware_update"
+BINARY_SENSOR_TYPE_CONNECTED = "connected"
 
 # Device model mappings
 DEVICE_MODELS = {
